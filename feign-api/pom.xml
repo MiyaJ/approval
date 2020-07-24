@@ -11,5 +11,11 @@
 
     <artifactId>feign-api</artifactId>
 
-
+    <dependencies>
+        <dependency>
+            <groupId>com.ezy</groupId>
+            <artifactId>site</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </project>

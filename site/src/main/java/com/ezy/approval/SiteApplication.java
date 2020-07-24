@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 @SpringBootApplication
 @EnableDiscoveryClient
-@MapperScan("com.ezy.crm.*.mapper")
+@MapperScan("com.ezy.approval.*.mapper")
 @EnableScheduling
 @EnableTransactionManagement
 @EnableCaching
