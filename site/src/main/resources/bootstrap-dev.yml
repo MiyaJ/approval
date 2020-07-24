@@ -1,0 +1,10 @@
+spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 172.16.0.10:8848
+      config:
+        server-addr: 172.16.0.10:8848
+        prefix: ${spring.application.name}
+        file-extension: yml
+        namespace: 3d3ca54a-6f96-475e-b1b8-854521c766c8
