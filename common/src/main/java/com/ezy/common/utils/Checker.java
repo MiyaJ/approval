@@ -1,6 +1,6 @@
 package com.ezy.common.utils;
 
-import com.ezy.crm.exception.CodeException;
+import com.ezy.common.exception.CodeException;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
 

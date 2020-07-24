@@ -2,11 +2,12 @@ package com.ezy.common.utils;
 
 import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
-import com.ezy.crm.model.TokenVerifyResult;
+import com.ezy.common.model.TokenVerifyResult;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.apache.tomcat.util.codec.binary.Base64;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;

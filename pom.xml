@@ -44,7 +44,7 @@
             <!--通用模块-->
             <dependency>
                 <groupId>com.ezy</groupId>
-                <artifactId>ommon</artifactId>
+                <artifactId>common</artifactId>
                 <version>${common.version}</version>
             </dependency>
             <!--Spring Cloud 相关依赖-->
