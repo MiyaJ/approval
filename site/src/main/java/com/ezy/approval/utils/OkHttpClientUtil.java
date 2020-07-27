@@ -98,7 +98,7 @@ public class OkHttpClientUtil {
         }
         MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
         String json = new Gson().toJson(params);
-        RequestBody body = RequestBody.create(json, mediaType);
+        RequestBody body = RequestBody.create(mediaType, json);
         Request request = requestBuilder
                 .url(url)
                 .post(body)
@@ -136,7 +136,7 @@ public class OkHttpClientUtil {
         }
         MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
         String json = params.toJSONString();
-        RequestBody body = RequestBody.create(json, mediaType);
+        RequestBody body = RequestBody.create(mediaType, json);
         Request request = requestBuilder
                 .url(url)
                 .post(body)
