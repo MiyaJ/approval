@@ -18,7 +18,7 @@ import java.util.List;
  * @Version: 1.0
  */
 public class CodeGenerator {
-    private static String PROJECT_PATH = System.getProperty("user.dir") + "\\crm-site\\";
+    private static String PROJECT_PATH = System.getProperty("user.dir") + "\\site\\";
 
     private static String OUTPUT_DIR = PROJECT_PATH + "\\src\\main\\java";
 
@@ -39,12 +39,12 @@ public class CodeGenerator {
         gc.setBaseResultMap(true);
         // XML columnList
         gc.setBaseColumnList(false);
-        gc.setAuthor("zehao.zhang");
+        gc.setAuthor("CaiXiaowei");
         gc.setOpen(false);
 
         // 自定义文件命名，注意 %s 会自动填充表实体属性！
         gc.setControllerName("%sController");
-        gc.setServiceName("%sService");
+        gc.setServiceName("I%sService");
         gc.setMapperName("%sMapper");
         gc.setServiceImplName("%sServiceImpl");
         gc.setXmlName("%sMapper");
@@ -53,17 +53,18 @@ public class CodeGenerator {
         // 数据源配置
         DataSourceConfig dsc = new DataSourceConfig();
         dsc.setDbType(DbType.MYSQL);
-        dsc.setDriverName("com.mysql.jdbc.Driver");
+        dsc.setDriverName("com.mysql.cj.jdbc.Driver");
         dsc.setUsername("root");
         dsc.setPassword("qwedsa!@#");
-        dsc.setUrl("jdbc:mysql://172.16.0.10:3306/micro-crm?characterEncoding=utf8&characterSetResults=utf8&autoReconnect=true&failOverReadOnly=false");
+        dsc.setUrl("jdbc:mysql://172.16.0.10:3306/wxwork?characterEncoding=utf8&characterSetResults=utf8" +
+                "&autoReconnect=true&failOverReadOnly=false");
         mpg.setDataSource(dsc);
 
         // 策略配置
         StrategyConfig strategy = new StrategyConfig();
         strategy.setTablePrefix("t_");
         strategy.setNaming(NamingStrategy.underline_to_camel);
-        strategy.setInclude("t_default_pool_policy");
+//        strategy.setInclude("t_default_pool_policy");
 
         strategy.setSuperServiceClass(null);
         strategy.setSuperServiceImplClass(null);
@@ -74,11 +75,11 @@ public class CodeGenerator {
 
         // 包配置
         PackageConfig pc = new PackageConfig();
-        pc.setParent("com.ezy.crm.leads");
+        pc.setParent("com.ezy.approval");
         pc.setController("controller");
         pc.setServiceImpl("service");
         pc.setMapper("mapper");
-        pc.setEntity("model");
+        pc.setEntity("entity");
         pc.setXml("xml");
         mpg.setPackageInfo(pc);
 
