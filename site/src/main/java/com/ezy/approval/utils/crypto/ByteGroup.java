@@ -1,7 +1,10 @@
 package com.ezy.approval.utils.crypto;
 
+import lombok.NoArgsConstructor;
+
 import java.util.ArrayList;
 
+@NoArgsConstructor
 public class ByteGroup {
     ArrayList<Byte> byteContainer = new ArrayList<>();
 
