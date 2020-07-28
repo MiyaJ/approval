@@ -2,8 +2,7 @@ package com.ezy.approval.controller;
 
 
 import org.springframework.web.bind.annotation.RequestMapping;
-
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * <p>
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Controller;
  * @author CaiXiaowei
  * @since 2020-07-27
  */
-@Controller
+@RestController
 @RequestMapping("/approvalTemplateSystem")
 public class ApprovalTemplateSystemController {
 

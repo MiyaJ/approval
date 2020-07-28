@@ -12,8 +12,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ezy.approval.service.IApprovalTemplateSystemService;
 import com.ezy.approval.utils.OkHttpClientUtil;
 import com.ezy.common.model.CommonResult;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -28,6 +31,8 @@ import java.util.Map;
  * @since 2020-07-27
  */
 @Service
+@Slf4j
+@Transactional(propagation = Propagation.SUPPORTS, readOnly = true, rollbackFor = Exception.class)
 public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMapper, ApprovalTemplate> implements IApprovalTemplateService {
 
     @Autowired
@@ -45,6 +50,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
      * @updateTime 2020/7/27 15:02
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public CommonResult add(ApprovalTemplateAddDTO approvalTemplateAddDTO) {
         String templateId = approvalTemplateAddDTO.getTemplateId();
         String systemCode = approvalTemplateAddDTO.getSystemCode();
@@ -64,7 +70,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         String templateName = templateNames.getJSONObject(0).getString("text");
 
         // 模板内容
-        JSONArray templateContent = detail.getJSONArray("template_content");
+        JSONObject templateContent = detail.getJSONObject("template_content");
 
 
         template.setTemplateId(templateId);
@@ -72,11 +78,11 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         template.setIsDeleted(0);
         template.setContent(JSONObject.toJSONString(templateContent));
         template.setPatternImage(patternImage);
-        template.setEnable(true);
+        template.setIsEnable(true);
         // TODO: 2020/7/27 模板出入参待完善
         template.setRequestParam("");
         template.setResponseParam("");
-        template.setDesc("");
+        template.setDescription("");
         // TODO: 2020/7/27 创建人/更新人 待完善
         template.setCreateTime(LocalDateTime.now());
         template.setUpdateTime(LocalDateTime.now());
@@ -91,6 +97,8 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
 
         templateSystemService.save(approvalTemplateSystem);
 
-        return CommonResult.success("新增审批模板成功!");
+        log.info("add template: {}", "新增审批模板成功");
+        CommonResult<String> success = CommonResult.success("新增审批模板成功!");
+        return success;
     }
 }

@@ -8,8 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * <p>
@@ -19,7 +18,7 @@ import org.springframework.stereotype.Controller;
  * @author CaiXiaowei
  * @since 2020-07-27
  */
-@Controller
+@RestController
 @RequestMapping("/approval-template")
 public class ApprovalTemplateController {
 
@@ -36,7 +35,8 @@ public class ApprovalTemplateController {
      */
     @PostMapping(value = "/add")
     private CommonResult add(@RequestBody ApprovalTemplateAddDTO approvalTemplateAddDTO) {
-        return templateService.add(approvalTemplateAddDTO);
+        CommonResult add = templateService.add(approvalTemplateAddDTO);
+        return add;
     }
 }
 

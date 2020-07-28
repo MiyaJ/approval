@@ -89,12 +89,12 @@ public class ApprovalTemplate implements Serializable {
     /**
      * 模板描述
      */
-    private String desc;
+    private String description;
 
     /**
      * 是否启用: 1 true 启用; 0 false 未启用
      */
-    private Boolean enable;
+    private Boolean isEnable;
 
 
 }
