@@ -1,5 +1,8 @@
 package com.ezy.approval.service;
 
+import com.alibaba.fastjson.JSONObject;
+import org.springframework.web.multipart.MultipartFile;
+
 /**
  * @author Caixiaowei
  * @ClassName IWXWorkService.java
@@ -18,4 +21,15 @@ public interface IWxWorkService {
      * @updateTime 2020/6/24 16:37
      */
     String getAccessToken(String corpsecret);
+
+    /**
+     * 上传文件到企微素材库
+     * @description
+     * @author Caixiaowei
+     * @param file: 文件信息
+     * @param accessToken: 应用token
+     * @updateTime 2020/7/28 10:52
+     * @return
+     */
+    JSONObject upload(MultipartFile file, String accessToken);
 }

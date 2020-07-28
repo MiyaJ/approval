@@ -1,6 +1,10 @@
 package com.ezy.approval.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.ezy.common.model.CommonResult;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author Caixiaowei
@@ -28,4 +32,25 @@ public interface IApprovalService {
      * @return JSONObject
      */
     JSONObject getTemplateDetail(String templateId);
+
+    /**
+     * 上传审批附件
+     * @description
+     * @author Caixiaowei
+     * @param file: 附件信息
+     * @updateTime 2020/7/28 11:09
+     * @return
+     */
+    CommonResult uploadAnnex(MultipartFile file);
+
+    /**
+     * 获取素材
+     * @description
+     * @author Caixiaowei
+     * @param mediaId: string 素材id
+     * @updateTime 2020/7/28 13:46
+     * @return
+     */
+    String getMedia(String mediaId, HttpServletResponse response);
+
 }
