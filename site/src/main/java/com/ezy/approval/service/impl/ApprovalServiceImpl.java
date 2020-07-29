@@ -1,17 +1,23 @@
 package com.ezy.approval.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.ezy.approval.model.UploadVO;
+import com.ezy.approval.model.apply.ApprovalApplyDTO;
+import com.ezy.approval.model.apply.Approver;
+import com.ezy.approval.model.template.TextProperty;
 import com.ezy.approval.service.IApprovalService;
 import com.ezy.approval.service.IWxWorkService;
 import com.ezy.approval.service.RedisService;
 import com.ezy.approval.utils.OkHttpClientUtil;
-import com.ezy.common.enums.RedisConstans;
+import com.ezy.common.constants.RedisConstans;
 import com.ezy.common.model.CommonResult;
+import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -160,6 +167,54 @@ public class ApprovalServiceImpl extends WxWorkServiceImpl implements IApprovalS
 //
 //        }
 
+    }
+
+    /**
+     * 提交审批申请
+     *
+     * @param approvalApplyDTO 审批申请信息
+     * @return
+     * @description
+     * @author Caixiaowei
+     * @updateTime 2020/7/29 16:14
+     */
+    @Override
+    public JSONObject applyEvent(ApprovalApplyDTO approvalApplyDTO) {
+        String accessToken = this.getAccessToken();
+        String url = "https://qyapi.weixin.qq.com/cgi-bin/oa/applyevent?access_token=ACCESS_TOKEN";
+        String replacedUrl = url.replace("ACCESS_TOKEN", accessToken);
+
+        // TODO: 2020/7/29 转换请求数据
+        JSONObject data = new JSONObject();
+
+        List<Approver> approver = approvalApplyDTO.getApprover();
+        List<String> notifyer = approvalApplyDTO.getNotifyer();
+        Integer notifyType = approvalApplyDTO.getNotifyType();
+        List<TextProperty> summaryList = approvalApplyDTO.getSummaryList();
+
+        data.put("creator_userid", approvalApplyDTO.getCreatorUserid());
+        data.put("template_id", approvalApplyDTO.getTemplateId());
+        data.put("use_template_approver", approvalApplyDTO.getUseTemplateApprover());
+        data.put("approver", approver);
+        data.put("notifyer", notifyer);
+        data.put("notify_type", notifyType);
+
+        if (CollectionUtil.isNotEmpty(summaryList)) {
+            List<JSONObject> tempSummaryList = Lists.newArrayList();
+            for (TextProperty textProperty : summaryList) {
+                JSONObject summaryInfo = new JSONObject();
+                summaryInfo.put("summary_info", Lists.newArrayList(textProperty));
+                tempSummaryList.add(summaryInfo);
+            }
+            data.put("summary_list", tempSummaryList);
+
+        }
+
+
+
+        String result = OkHttpClientUtil.doPost(replacedUrl, null, data);
+        JSONObject wxResult = JSONObject.parseObject(result);
+        return wxResult;
     }
 
     /**

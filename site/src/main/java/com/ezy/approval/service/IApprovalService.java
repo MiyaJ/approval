@@ -1,6 +1,7 @@
 package com.ezy.approval.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.ezy.approval.model.apply.ApprovalApplyDTO;
 import com.ezy.common.model.CommonResult;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -52,5 +53,15 @@ public interface IApprovalService {
      * @return
      */
     String getMedia(String mediaId, HttpServletResponse response);
+
+    /**
+     * 提交审批申请
+     * @description
+     * @author Caixiaowei
+     * @param approvalApplyDTO 审批申请信息
+     * @updateTime 2020/7/29 16:14 
+     * @return 
+     */
+    JSONObject applyEvent(ApprovalApplyDTO approvalApplyDTO);
 
 }

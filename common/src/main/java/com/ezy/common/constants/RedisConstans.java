@@ -1,4 +1,4 @@
-package com.ezy.common.enums;
+package com.ezy.common.constants;
 
 /**
  * @author Caixiaowei
