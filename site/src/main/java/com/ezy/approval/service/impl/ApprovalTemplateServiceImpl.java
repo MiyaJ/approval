@@ -8,15 +8,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ezy.approval.entity.ApprovalTemplate;
 import com.ezy.approval.entity.ApprovalTemplateSystem;
 import com.ezy.approval.mapper.ApprovalTemplateMapper;
-import com.ezy.approval.model.template.ApprovalTemplateAddDTO;
-import com.ezy.approval.model.template.TemplateControl;
-import com.ezy.approval.model.template.TemplateControlProperty;
-import com.ezy.approval.model.template.TemplateDetailVO;
+import com.ezy.approval.model.apply.ApplyDataContent;
+import com.ezy.approval.model.template.*;
 import com.ezy.approval.service.IApprovalService;
 import com.ezy.approval.service.IApprovalTemplateService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ezy.approval.service.IApprovalTemplateSystemService;
 import com.ezy.approval.utils.OkHttpClientUtil;
+import com.ezy.common.enums.ApprovalControlEnum;
 import com.ezy.common.model.CommonResult;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -87,8 +86,12 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
 
         // 模板内容
         JSONObject templateContent = detail.getJSONObject("template_content");
-        List<TemplateControl> templateControls = buildTemplateRequestParams(templateContent);
-        String requestParam = JSONObject.toJSONString(templateControls);
+//        List<TemplateControl> templateControls = buildTemplateRequestParams(templateContent);
+//        String requestParam = JSONObject.toJSONString(templateControls);
+
+        List<ApplyDataContent> applyDataContents = buildTemplateRequestParams2(templateContent);
+        String requestParam = JSONObject.toJSONString(applyDataContents);
+
 
         template.setTemplateId(templateId);
         template.setTemplateName(templateName);
@@ -217,6 +220,137 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
             }
         }
         return controlList;
+    }
+
+    /**
+     * 构建审批内容参数
+     * @description
+     * @author Caixiaowei
+     * @param templateContent: JSONObject 内容组件
+     * @updateTime 2020/7/30 13:50
+     * @return List<ApplyDataContent>
+     */
+    private List<ApplyDataContent> buildTemplateRequestParams2(JSONObject templateContent) {
+        List<ApplyDataContent> contents = Lists.newArrayList();
+        // 所有控件
+        JSONArray controls = templateContent.getJSONArray("controls");
+        if (controls != null && controls.size() > 0) {
+            for (Object controlObject : controls) {
+                JSONObject controlJson = (JSONObject) controlObject;
+                JSONObject property = controlJson.getJSONObject("property");
+                JSONObject config = controlJson.getJSONObject("config");
+
+                // 控件属性
+                String control = property.getString("control");
+                String id = property.getString("id");
+                List<TextProperty> title = JSONArray.parseArray(property.getString("title"), TextProperty.class);
+                JSONObject value = new JSONObject();
+
+                ApplyDataContent content = ApplyDataContent.builder()
+                        .control(control)
+                        .id(id)
+                        .title(title)
+                        .build();
+                // 根据控件类型来组装 value
+                if (control.equalsIgnoreCase(ApprovalControlEnum.TEXT.getControl())
+            || control.equalsIgnoreCase(ApprovalControlEnum.TEXTAREA.getControl())) {
+                    // 文本控件 , 多行文本
+                    value.put("text", "");
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.NUMBER.getControl())) {
+                    // 数字控件
+                    value.put("new_number", "");
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.MONEY.getControl())) {
+                    // 金钱控件
+                    value.put("new_money", "");
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.DATE.getControl())) {
+                    // 日期/日期+时间控件
+                    JSONObject date = config.getJSONObject("date");
+                    String type = date.getString("type");
+                    date.put("s_timestamp", "");
+                    value.put("date", date);
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.DATE_RANGE.getControl())) {
+                    // 时长
+                    JSONObject dateRange = config.getJSONObject("date_range");
+                    Long perday_duration = dateRange.getLong("perday_duration");
+                    dateRange.put("new_begin", "");
+                    dateRange.put("new_end", "");
+                    dateRange.put("new_duration", perday_duration);
+
+                    value.put("date_range", dateRange);
+
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.SELECTOR.getControl())) {
+                    // 选择
+                    JSONObject selector = config.getJSONObject("selector");
+                    String type = selector.getString("type");
+
+                    JSONObject option = new JSONObject();
+                    option.put("key", "");
+
+                    JSONArray optionsValue = new JSONArray();
+                    optionsValue.add(new TextProperty());
+                    option.put("value", optionsValue);
+
+                    JSONArray options = new JSONArray();
+                    options.add(option);
+
+                    JSONObject newSelector = new JSONObject();
+                    newSelector.put("type", type);
+                    newSelector.put("options", options);
+
+                    value.put("selector", newSelector);
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.CONTACT.getControl())) {
+                    // 成员/部门
+                    JSONObject selector = config.getJSONObject("contact");
+                    String type = selector.getString("type");
+                    String mode = selector.getString("mode");
+                    if ("user".equalsIgnoreCase(mode)) {
+                        // 成员
+                        JSONObject member = new JSONObject();
+                        member.put("userid", "");
+                        member.put("name", "");
+
+                        JSONArray members = new JSONArray();
+                        members.add(member);
+
+                        value.put("members", members);
+                    } else if ("department".equalsIgnoreCase(mode)) {
+                        // 部门
+                        JSONObject department = new JSONObject();
+                        department.put("openapi_id", "");
+                        department.put("name", "");
+
+                        JSONArray departments = new JSONArray();
+                        departments.add(department);
+
+                        value.put("departments", departments);
+                    }
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.LOCATION.getControl())) {
+                    // 位置
+                    JSONObject location = new JSONObject();
+                    location.put("latitude", "");
+                    location.put("longitude", "");
+                    location.put("title", "");
+                    location.put("address", "");
+                    location.put("time", "");
+
+                    value.put("location", location);
+
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.LOCATION.getControl())) {
+
+                    JSONObject file = new JSONObject();
+                    file.put("file_id", "");
+
+                    JSONArray files = new JSONArray();
+                    files.add(file);
+
+                    value.put("files", files);
+                }
+
+                content.setValue(value);
+                contents.add(content);
+            }
+        }
+        return contents;
     }
 
     /**
