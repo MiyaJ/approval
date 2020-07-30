@@ -1,21 +1,19 @@
 package com.ezy.approval.service.impl;
 
-import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ezy.approval.entity.ApprovalApply;
 import com.ezy.approval.entity.ApprovalTemplate;
 import com.ezy.approval.entity.ApprovalTemplateSystem;
 import com.ezy.approval.mapper.ApprovalApplyMapper;
 import com.ezy.approval.model.apply.ApprovalApplyDTO;
 import com.ezy.approval.service.IApprovalApplyService;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ezy.approval.service.IApprovalService;
 import com.ezy.approval.service.IApprovalTemplateService;
 import com.ezy.approval.service.IApprovalTemplateSystemService;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.ezy.common.model.CommonResult;
-import javafx.application.Application;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -74,7 +72,7 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         apply.setWxUserId("0");
         apply.setWxPartyId("0");
         // TODO: 2020/7/29 转换审批数据
-        apply.setApplyData(approvalApplyDTO.getApplyData());
+        apply.setApplyData(JSONObject.toJSONString(approvalApplyDTO.getApplyData()));
 
         this.save(apply);
 
@@ -86,7 +84,7 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         if (errcode != 0) {
             apply.setErrorReason(errmsg);
             // 申请失败
-            apply.setStatus(11);
+            apply.setStatus(ApprovalStatusEnum.FAIL.getStatus());
             apply.setSpNo(spNo);
             this.updateById(apply);
 
@@ -94,7 +92,6 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         }
         // 更新审批单号等信息
         apply.setErrorReason(errmsg);
-        apply.setStatus(1);
         apply.setSpNo(spNo);
         this.updateById(apply);
 

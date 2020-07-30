@@ -1,5 +1,6 @@
 package com.ezy.approval.model.apply;
 
+import com.alibaba.fastjson.JSONObject;
 import com.ezy.approval.model.template.TextProperty;
 import lombok.Data;
 
@@ -59,7 +60,7 @@ public class ApprovalApplyDTO implements Serializable {
     /**
      * 审批申请数据
      */
-    private String applyData;
+    private JSONObject applyData;
 
 
     /**

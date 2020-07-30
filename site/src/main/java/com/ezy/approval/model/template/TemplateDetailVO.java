@@ -1,5 +1,6 @@
 package com.ezy.approval.model.template;
 
+import com.ezy.approval.model.apply.ApplyDataContent;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Tolerate;
@@ -40,7 +41,7 @@ public class TemplateDetailVO implements Serializable {
     /**
      * json结构, 模板入参, 调用方需要传入的参数及其说明
      */
-    private List<TemplateControl> requestParam;
+    private List<ApplyDataContent> requestParam;
 
     /**
      * json结构

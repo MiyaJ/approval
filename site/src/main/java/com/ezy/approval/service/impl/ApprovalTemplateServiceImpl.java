@@ -160,7 +160,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 .patternImage(template.getPatternImage())
                 .build();
         String requestParam = template.getRequestParam();
-        List<TemplateControl> templateControls = JSONObject.parseArray(requestParam, TemplateControl.class);
+        List<ApplyDataContent> templateControls = JSONObject.parseArray(requestParam, ApplyDataContent.class);
         detailVO.setRequestParam(templateControls);
 
         return CommonResult.success(detailVO);
@@ -281,23 +281,24 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 } else if (control.equalsIgnoreCase(ApprovalControlEnum.SELECTOR.getControl())) {
                     // 选择
                     JSONObject selector = config.getJSONObject("selector");
-                    String type = selector.getString("type");
+                    value.put("selector", selector);
+//                    String type = selector.getString("type");
+//
+//                    JSONObject option = new JSONObject();
+//                    option.put("key", "");
+//
+//                    JSONArray optionsValue = new JSONArray();
+//                    optionsValue.add(new TextProperty());
+//                    option.put("value", optionsValue);
+//
+//                    JSONArray options = new JSONArray();
+//                    options.add(option);
+//
+//                    JSONObject newSelector = new JSONObject();
+//                    newSelector.put("type", type);
+//                    newSelector.put("options", options);
 
-                    JSONObject option = new JSONObject();
-                    option.put("key", "");
 
-                    JSONArray optionsValue = new JSONArray();
-                    optionsValue.add(new TextProperty());
-                    option.put("value", optionsValue);
-
-                    JSONArray options = new JSONArray();
-                    options.add(option);
-
-                    JSONObject newSelector = new JSONObject();
-                    newSelector.put("type", type);
-                    newSelector.put("options", options);
-
-                    value.put("selector", newSelector);
                 } else if (control.equalsIgnoreCase(ApprovalControlEnum.CONTACT.getControl())) {
                     // 成员/部门
                     JSONObject selector = config.getJSONObject("contact");
@@ -338,7 +339,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 } else if (control.equalsIgnoreCase(ApprovalControlEnum.LOCATION.getControl())) {
 
                     JSONObject file = new JSONObject();
-                    file.put("file_id", "");
+                    file.put("file_id", "文件的media_id");
 
                     JSONArray files = new JSONArray();
                     files.add(file);

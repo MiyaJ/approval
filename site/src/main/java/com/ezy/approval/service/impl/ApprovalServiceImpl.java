@@ -2,6 +2,7 @@ package com.ezy.approval.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.ezy.approval.model.UploadVO;
 import com.ezy.approval.model.apply.ApprovalApplyDTO;
@@ -14,6 +15,7 @@ import com.ezy.approval.utils.OkHttpClientUtil;
 import com.ezy.common.constants.RedisConstans;
 import com.ezy.common.model.CommonResult;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -185,12 +187,13 @@ public class ApprovalServiceImpl extends WxWorkServiceImpl implements IApprovalS
         String replacedUrl = url.replace("ACCESS_TOKEN", accessToken);
 
         // TODO: 2020/7/29 转换请求数据
-        JSONObject data = new JSONObject();
+        Map<String, Object> data = Maps.newHashMap();
 
         List<Approver> approver = approvalApplyDTO.getApprover();
         List<String> notifyer = approvalApplyDTO.getNotifyer();
         Integer notifyType = approvalApplyDTO.getNotifyType();
         List<TextProperty> summaryList = approvalApplyDTO.getSummaryList();
+        JSONObject applyData = approvalApplyDTO.getApplyData();
 
         data.put("creator_userid", approvalApplyDTO.getCreatorUserid());
         data.put("template_id", approvalApplyDTO.getTemplateId());
@@ -198,6 +201,7 @@ public class ApprovalServiceImpl extends WxWorkServiceImpl implements IApprovalS
         data.put("approver", approver);
         data.put("notifyer", notifyer);
         data.put("notify_type", notifyType);
+        data.put("apply_data", applyData);
 
         if (CollectionUtil.isNotEmpty(summaryList)) {
             List<JSONObject> tempSummaryList = Lists.newArrayList();
@@ -209,9 +213,9 @@ public class ApprovalServiceImpl extends WxWorkServiceImpl implements IApprovalS
             data.put("summary_list", tempSummaryList);
 
         }
+        data.put("summary_list", new JSONArray());
 
-
-
+        log.info("data---> {}", JSONObject.toJSONString(data));
         String result = OkHttpClientUtil.doPost(replacedUrl, null, data);
         JSONObject wxResult = JSONObject.parseObject(result);
         return wxResult;
