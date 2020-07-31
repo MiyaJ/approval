@@ -5,11 +5,7 @@ import com.ezy.approval.model.apply.ApprovalApplyDTO;
 import com.ezy.approval.service.IApprovalApplyService;
 import com.ezy.common.model.CommonResult;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * <p>
@@ -38,6 +34,19 @@ public class ApprovalApplyController {
     @PostMapping("/apply")
     public CommonResult apply(@RequestBody ApprovalApplyDTO approvalApplyDTO) {
         return approvalApplyService.apply(approvalApplyDTO);
+    }
+    
+    /**
+     * 根据单号查询审批单据
+     * @description
+     * @author Caixiaowei
+     * @param spNo string 审批单号
+     * @updateTime 2020/7/31 11:26 
+     * @return 
+     */
+    @GetMapping("/detail")
+    public CommonResult detail(String systemCode, String spNo) {
+        return approvalApplyService.detail(systemCode, spNo);
     }
 }
 

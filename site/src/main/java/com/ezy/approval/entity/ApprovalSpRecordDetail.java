@@ -40,6 +40,11 @@ public class ApprovalSpRecordDetail implements Serializable {
     private Long approverEmpId;
 
     /**
+     * 分支审批人员工姓名
+     */
+    private String approverEmpName;
+
+    /**
      * 审批意见
      */
     private String speech;

@@ -25,4 +25,14 @@ public interface IApprovalApplyService extends IService<ApprovalApply> {
      */
     CommonResult apply(ApprovalApplyDTO approvalApplyDTO);
 
+    /**
+     * 根据单号查询审批单据
+     * @description
+     * @author Caixiaowei
+     * @param systemCode string 调用方系统标识
+     * @param spNo string 审批单号
+     * @updateTime 2020/7/31 11:28
+     * @return
+     */
+    CommonResult detail(String systemCode, String spNo);
 }
