@@ -35,4 +35,16 @@ public interface IApprovalApplyService extends IService<ApprovalApply> {
      * @return
      */
     CommonResult detail(String systemCode, String spNo);
+
+    /**
+     * 查询系统应用的审批单
+     * @description
+     * @author Caixiaowei
+     * @param systemCode string 系统标识
+     * @param startDate string 开始日期
+     * @param endDate string 结束日期
+     * @updateTime 2020/8/3 9:33
+     * @return
+     */
+    CommonResult listBySystemCode(String systemCode, String startDate, String endDate);
 }

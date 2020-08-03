@@ -1,6 +1,7 @@
 package com.ezy.approval.controller;
 
 
+import cn.hutool.core.util.StrUtil;
 import com.ezy.approval.model.apply.ApprovalApplyDTO;
 import com.ezy.approval.service.IApprovalApplyService;
 import com.ezy.common.model.CommonResult;
@@ -48,5 +49,22 @@ public class ApprovalApplyController {
     public CommonResult detail(String systemCode, String spNo) {
         return approvalApplyService.detail(systemCode, spNo);
     }
-}
 
+    /**
+     *
+     * @description 条件查询审批单据列表
+     * @author Caixiaowei
+     * @param systemCode string 系统表示
+     * @param startDate string 开始日期
+     * @param endDate string 结束日期
+     * @updateTime 2020/8/3 11:00
+     * @return
+     */
+    @GetMapping("/listBySystemCode")
+    public CommonResult listBySystemCode(String systemCode, String startDate, String endDate) {
+        if (StrUtil.isEmpty(systemCode)) {
+            return CommonResult.failed("参数异常, 请稍后再试!");
+        }
+        return approvalApplyService.listBySystemCode(systemCode, startDate, endDate);
+    }
+}

@@ -3,6 +3,7 @@ package com.ezy.approval.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -149,7 +150,31 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         return CommonResult.success(detailVO);
     }
 
-
+    /**
+     * 查询系统应用的审批单
+     *
+     * @param systemCode string 系统标识
+     * @param startDate string 开始日期
+     * @param endDate string 结束日期
+     * @return
+     * @description
+     * @author Caixiaowei
+     * @updateTime 2020/8/3 9:33
+     */
+    @Override
+    public CommonResult listBySystemCode(String systemCode, String startDate, String endDate) {
+        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("system_code", systemCode);
+        queryWrapper.ge(StrUtil.isNotEmpty(startDate), "create_date", startDate);
+        queryWrapper.le(StrUtil.isNotEmpty(endDate), "create_date", endDate);
+        List<ApprovalApply> approvalApplyList = this.list(queryWrapper);
+        List<ApprovalDetailVO> list = approvalApplyList.stream().map(a -> {
+            ApprovalDetailVO vo = new ApprovalDetailVO();
+            BeanUtil.copyProperties(a, vo);
+            return vo;
+        }).collect(Collectors.toList());
+        return CommonResult.success(list);
+    }
 
     /********************** 私有方法 ********************************/
 
