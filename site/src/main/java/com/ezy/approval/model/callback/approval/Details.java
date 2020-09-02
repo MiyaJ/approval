@@ -38,5 +38,5 @@ public class Details implements Serializable {
      * 节点分支审批人审批操作时间，0为尚未操作
      */
     @XStreamAlias("SpTime")
-    private Integer spTime;
+    private Long spTime;
 }

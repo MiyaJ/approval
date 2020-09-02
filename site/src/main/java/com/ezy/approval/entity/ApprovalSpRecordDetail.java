@@ -52,7 +52,7 @@ public class ApprovalSpRecordDetail implements Serializable {
     /**
      * 分支审批人审批状态：1-审批中；2-已同意；3-已驳回；4-已转审
      */
-    private String spStatus;
+    private Integer spStatus;
 
     /**
      * 节点分支审批人审批操作时间，0为尚未操作
