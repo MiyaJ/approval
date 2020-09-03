@@ -1,6 +1,7 @@
 package com.ezy.approval.handler;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ezy.approval.entity.ApprovalSpNotifyer;
 import com.ezy.approval.entity.ApprovalSpRecord;
 import com.ezy.approval.entity.ApprovalSpRecordDetail;
@@ -62,6 +63,77 @@ public class ApprovalHandler {
             // 审批流程节点处理
             processSpRecord(spNo, spRecords);
 
+        }
+    }
+
+    /**
+     * 审批流程节点处理
+     *
+     * @param spNo 审批单号
+     * @param spRecords 审批流程节点信息
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/2 14:29
+     */
+    private void processUpdateSpRecord(String spNo, List<SpRecord> spRecords) {
+        if (CollectionUtil.isNotEmpty(spRecords)) {
+            Integer step = 0;
+            for (SpRecord spRecord : spRecords) {
+                Integer approverAttr = spRecord.getApproverAttr();
+                List<Details> details = spRecord.getDetails();
+                Integer recordSpStatus = spRecord.getSpStatus();
+
+                // 审批流程
+                QueryWrapper<ApprovalSpRecord> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("sp_no", spNo);
+                queryWrapper.eq("step", step);
+                ApprovalSpRecord approvalSpRecord = approvalSpRecordService.getOne(queryWrapper);
+                if (approvalSpRecord == null) {
+                    approvalSpRecord = new ApprovalSpRecord();
+                }
+                approvalSpRecord.setSpNo(spNo);
+                approvalSpRecord.setApproverAttr(approverAttr);
+                approvalSpRecord.setSpStatus(recordSpStatus);
+                approvalSpRecord.setStep(step);
+
+                approvalSpRecordService.saveOrUpdate(approvalSpRecord);
+
+                // 处理审批节点详情
+                Long spRecordId = approvalSpRecord.getId();
+                List<ApprovalSpRecordDetail> recordDetails = Lists.newArrayList();
+                for (Details detail : details) {
+                    Applyer approver = detail.getApprover();
+                    String userId = approver.getUserId();
+
+                    QueryWrapper<ApprovalSpRecordDetail> detailQueryWrapper = new QueryWrapper<>();
+                    detailQueryWrapper.eq("sp_record_id", spRecordId);
+                    detailQueryWrapper.eq("approver_user_id", userId);
+                    ApprovalSpRecordDetail recordDetail = approvalSpRecordDetailService.getOne(detailQueryWrapper);
+                    if (recordDetail == null) {
+                        recordDetail = new ApprovalSpRecordDetail();
+                    }
+                    // TODO: 2020/9/2 调用usercenter 通过企业微信userid 查询员工信息: empId, empName
+                    EmpInfo empInfo = getEmpByUserId(userId);
+
+                    String speech = detail.getSpeech();
+                    Integer detailSpStatus = detail.getSpStatus();
+                    Long spTime = detail.getSpTime();
+
+                    recordDetail.setSpRecordId(spRecordId);
+                    recordDetail.setApproverUserId(userId);
+                    recordDetail.setApproverEmpId(empInfo.getEmpId());
+                    recordDetail.setApproverEmpName(empInfo.getEmpName());
+                    recordDetail.setSpeech(speech);
+                    recordDetail.setSpStatus(detailSpStatus);
+                    recordDetail.setSpTime(spTime);
+
+                    recordDetails.add(recordDetail);
+                }
+                approvalSpRecordDetailService.saveOrUpdateBatch(recordDetails);
+
+                step++;
+
+            }
         }
     }
 
