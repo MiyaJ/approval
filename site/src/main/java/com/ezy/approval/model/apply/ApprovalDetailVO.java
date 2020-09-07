@@ -45,7 +45,7 @@ public class ApprovalDetailVO implements Serializable {
     /**
      * 申请提交时间 审批申请提交时间,Unix时间戳
      */
-    private LocalDateTime applyTime;
+    private Long applyTime;
 
     /**
      * 申请人员工id 申请人员工id

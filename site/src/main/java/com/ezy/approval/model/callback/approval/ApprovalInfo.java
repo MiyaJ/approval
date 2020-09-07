@@ -47,7 +47,7 @@ public class ApprovalInfo implements Serializable {
      * 审批申请提交时间,Unix时间戳 10位
      */
     @XStreamAlias("ApplyTime")
-    private Integer applyTime;
+    private Long applyTime;
 
     /**
      *

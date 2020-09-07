@@ -23,6 +23,10 @@ public class RabbitConfig {
     public static final String EXCHANGE_CONTACT = "EXCHANGE_CONTACT";
     public static final String EXCHANGE_HELLO = "EXCHANGE_HELLO";
 
+    public static final String TYPE_APPROVAL="APPROVAL";
+    public static final String TYPE_CONTACT="CONTACT";
+    public static final String TYPE_HELLO="HELLO";
+
     public static final String QUEUE_APPROVAL="QUEUE_APPROVAL";
     public static final String QUEUE_CONTACT="QUEUE_CONTACT";
     public static final String QUEUE_HELLO="QUEUE_HELLO";
@@ -104,15 +108,12 @@ public class RabbitConfig {
         rabbitTemplate.setConfirmCallback(new RabbitTemplate.ConfirmCallback() {
             @Override
             public void confirm(CorrelationData correlationData, boolean ack, String cause) {
-//                System.out.println("ConfirmCallback:     "+"相关数据："+correlationData);
-//                System.out.println("ConfirmCallback:     "+"确认情况："+ack);
-//                System.out.println("ConfirmCallback:     "+"原因："+cause);
                 if (ack) {
                     // 发送成功
-                    log.info("rabbit 发送成功: {}", JSONObject.toJSONString(correlationData));
+                    log.info("rabbit 发送成功 data: {}, ack:{}, cause: {}", JSONObject.toJSONString(correlationData), ack, cause);
                 } else {
                     // 发送失败
-                    log.info("rabbit 发送失败 data: {}; cause: {}", JSONObject.toJSONString(correlationData), cause);
+                    log.info("rabbit 发送失败 data: {}, ack:{}, cause: {}", JSONObject.toJSONString(correlationData), ack, cause);
                 }
             }
         });
@@ -120,14 +121,8 @@ public class RabbitConfig {
         rabbitTemplate.setReturnCallback(new RabbitTemplate.ReturnCallback() {
             @Override
             public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
-//                System.out.println("ReturnCallback:     "+"消息："+message);
-//                System.out.println("ReturnCallback:     "+"回应码："+replyCode);
-//                System.out.println("ReturnCallback:     "+"回应信息："+replyText);
-//                System.out.println("ReturnCallback:     "+"交换机："+exchange);
-//                System.out.println("ReturnCallback:     "+"路由键："+routingKey);
-
                 // 发送回调失败
-                log.error("rabbit 回调失败 message:{}, replyCode: {}, replyText: {}, exchange: {}, routingKey: {}",
+                log.error("rabbit 回调失败 消息 message:{}, 回应码 replyCode: {}, 回应信息 replyText: {}, 交换机 exchange: {}, 路由键 routingKey: {}",
                         message, replyCode, replyText, exchange, routingKey);
             }
         });

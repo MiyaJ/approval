@@ -3,6 +3,8 @@ package com.ezy.approval.entity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.io.Serializable;
 import lombok.Data;
@@ -64,7 +66,7 @@ public class ApprovalApply implements Serializable {
     /**
      * 申请提交时间 审批申请提交时间,Unix时间戳
      */
-    private Integer applyTime;
+    private Long applyTime;
 
     /**
      * 申请人员工id 申请人员工id
@@ -104,7 +106,7 @@ public class ApprovalApply implements Serializable {
     /**
      * 创建人
      */
-    private String createBy;
+    private Long createBy;
 
     /**
      * 创建时间
@@ -114,7 +116,7 @@ public class ApprovalApply implements Serializable {
     /**
      * 更新人
      */
-    private String updateBy;
+    private Long updateBy;
 
     /**
      * 更新时间

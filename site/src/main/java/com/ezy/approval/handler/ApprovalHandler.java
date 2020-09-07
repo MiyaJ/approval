@@ -2,19 +2,18 @@ package com.ezy.approval.handler;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.ezy.approval.entity.ApprovalApply;
 import com.ezy.approval.entity.ApprovalSpNotifyer;
 import com.ezy.approval.entity.ApprovalSpRecord;
 import com.ezy.approval.entity.ApprovalSpRecordDetail;
 import com.ezy.approval.model.callback.approval.*;
 import com.ezy.approval.model.sys.EmpInfo;
-import com.ezy.approval.service.IApprovalSpNotifyerService;
-import com.ezy.approval.service.IApprovalSpRecordDetailService;
-import com.ezy.approval.service.IApprovalSpRecordService;
-import com.ezy.common.enums.ApprovalStatuChangeEventEnum;
+import com.ezy.approval.service.*;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -27,16 +26,19 @@ import java.util.List;
 public class ApprovalHandler {
 
     @Autowired
+    private IApprovalApplyService approvalApplyService;
+    @Autowired
     private IApprovalSpNotifyerService approvalSpNotifyerService;
     @Autowired
     private IApprovalSpRecordService approvalSpRecordService;
     @Autowired
     private IApprovalSpRecordDetailService approvalSpRecordDetailService;
+    @Autowired
+    private ICommonService commonService;
 
 
-    public void handle(ApprovalInfo approvalInfo) {
-
-        String templateId = approvalInfo.getTemplateId();
+    public void handle(ApprovalStatuChangeEvent approvalStatuChangeEvent) {
+        ApprovalInfo approvalInfo = approvalStatuChangeEvent.getApprovalInfo();
         // 审批单号
         String spNo = approvalInfo.getSpNo();
         String spName = approvalInfo.getSpName();
@@ -44,7 +46,7 @@ public class ApprovalHandler {
         Integer spStatus = approvalInfo.getSpStatus();
         Applyer applyer = approvalInfo.getApplyer();
         // 审批申请提交时间,Unix时间戳 10位
-        Integer applyTime = approvalInfo.getApplyTime();
+        Long applyTime = approvalInfo.getApplyTime();
         // 备注信息
         List<Comments> comments = approvalInfo.getComments();
         // 审批申请状态变化类型：1-提单；2-同意；3-驳回；4-转审；5-催办；6-撤销；8-通过后撤销；10-添加备注
@@ -54,16 +56,62 @@ public class ApprovalHandler {
         // 审批流程信息
         List<SpRecord> spRecords = approvalInfo.getSpRecord();
 
-        if (statuChangeEvent.equals(ApprovalStatuChangeEventEnum.APPLY.getStatus())) {
+        // TODO: 2020/9/4 根据 statuChangeEvent 来进行后续业务处理：如催单发送消息等
 
-            // 提单, 处理审批单的抄送人, 审批节点信息, 并入库
-            // 处理抄送人
-            processNotifyer(spNo, notifyers);
 
-            // 审批流程节点处理
-            processSpRecord(spNo, spRecords);
+        // 提单, 处理审批单的抄送人, 审批节点信息, 并入库
+
+        // 处理审批单基本信息
+        processApply(approvalInfo);
+        // 处理抄送人
+        processNotifyer(spNo, notifyers);
+        // 审批流程节点处理
+        processSpRecord(spNo, spRecords);
+
+    }
+
+    /**
+     * 处理审批单基本信息
+     *
+     * @param approvalInfo 审批单信息
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/4 14:22
+     */
+    private void processApply(ApprovalInfo approvalInfo) {
+        String spNo = approvalInfo.getSpNo();
+        String spName = approvalInfo.getSpName();
+        Applyer applyer = approvalInfo.getApplyer();
+        String userId = applyer.getUserId();
+        String party = applyer.getParty();
+        EmpInfo empInfo = commonService.getEmpByUserId(userId);
+        Long empId = empInfo.getEmpId();
+        String empName = empInfo.getEmpName();
+
+        Long applyTime = approvalInfo.getApplyTime();
+        Integer spStatus = approvalInfo.getSpStatus();
+        String templateId = approvalInfo.getTemplateId();
+        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("sp_no", spNo);
+
+        ApprovalApply apply = approvalApplyService.getOne(queryWrapper);
+        if (apply == null) {
+            apply = new ApprovalApply();
+            apply.setSpNo(spNo);
+            apply.setCreateBy(empInfo.getEmpId());
+            apply.setCreateTime(LocalDateTime.now());
+            apply.setSpName(spName);
+            apply.setTemplateId(templateId);
 
         }
+        apply.setWxUserId(userId);
+        apply.setWxPartyId(party);
+        apply.setEmpId(empId);
+        apply.setStatus(spStatus);
+        apply.setApplyTime(applyTime);
+        apply.setWxPartyId(party);
+
+        approvalApplyService.saveOrUpdate(apply);
     }
 
     /**
@@ -75,7 +123,7 @@ public class ApprovalHandler {
      * @author Caixiaowei
      * @updateTime 2020/9/2 14:29
      */
-    private void processUpdateSpRecord(String spNo, List<SpRecord> spRecords) {
+    public void processSpRecord(String spNo, List<SpRecord> spRecords) {
         if (CollectionUtil.isNotEmpty(spRecords)) {
             Integer step = 0;
             for (SpRecord spRecord : spRecords) {
@@ -90,11 +138,12 @@ public class ApprovalHandler {
                 ApprovalSpRecord approvalSpRecord = approvalSpRecordService.getOne(queryWrapper);
                 if (approvalSpRecord == null) {
                     approvalSpRecord = new ApprovalSpRecord();
+                    approvalSpRecord.setSpNo(spNo);
+                    approvalSpRecord.setStep(step);
                 }
-                approvalSpRecord.setSpNo(spNo);
+
                 approvalSpRecord.setApproverAttr(approverAttr);
                 approvalSpRecord.setSpStatus(recordSpStatus);
-                approvalSpRecord.setStep(step);
 
                 approvalSpRecordService.saveOrUpdate(approvalSpRecord);
 
@@ -111,16 +160,16 @@ public class ApprovalHandler {
                     ApprovalSpRecordDetail recordDetail = approvalSpRecordDetailService.getOne(detailQueryWrapper);
                     if (recordDetail == null) {
                         recordDetail = new ApprovalSpRecordDetail();
+                        recordDetail.setSpRecordId(spRecordId);
+                        recordDetail.setApproverUserId(userId);
                     }
                     // TODO: 2020/9/2 调用usercenter 通过企业微信userid 查询员工信息: empId, empName
-                    EmpInfo empInfo = getEmpByUserId(userId);
+                    EmpInfo empInfo = commonService.getEmpByUserId(userId);
 
                     String speech = detail.getSpeech();
                     Integer detailSpStatus = detail.getSpStatus();
                     Long spTime = detail.getSpTime();
 
-                    recordDetail.setSpRecordId(spRecordId);
-                    recordDetail.setApproverUserId(userId);
                     recordDetail.setApproverEmpId(empInfo.getEmpId());
                     recordDetail.setApproverEmpName(empInfo.getEmpName());
                     recordDetail.setSpeech(speech);
@@ -128,66 +177,6 @@ public class ApprovalHandler {
                     recordDetail.setSpTime(spTime);
 
                     recordDetails.add(recordDetail);
-                }
-                approvalSpRecordDetailService.saveOrUpdateBatch(recordDetails);
-
-                step++;
-
-            }
-        }
-    }
-
-    /**
-     * 审批流程节点处理
-     *
-     * @param spNo 审批单号
-     * @param spRecords 审批流程节点信息
-     * @return
-     * @author Caixiaowei
-     * @updateTime 2020/9/2 14:29
-     */
-    private void processSpRecord(String spNo, List<SpRecord> spRecords) {
-        if (CollectionUtil.isNotEmpty(spRecords)) {
-            Integer step = 0;
-            for (SpRecord spRecord : spRecords) {
-                // 审批流程
-                ApprovalSpRecord approvalSpRecord = new ApprovalSpRecord();
-
-                Integer approverAttr = spRecord.getApproverAttr();
-                List<Details> details = spRecord.getDetails();
-                Integer recordSpStatus = spRecord.getSpStatus();
-
-                approvalSpRecord.setSpNo(spNo);
-                approvalSpRecord.setApproverAttr(approverAttr);
-                approvalSpRecord.setSpStatus(recordSpStatus);
-                approvalSpRecord.setStep(step);
-
-                approvalSpRecordService.saveOrUpdate(approvalSpRecord);
-
-                List<ApprovalSpRecordDetail> recordDetails = Lists.newArrayList();
-                for (Details detail : details) {
-                    // 审批节点详情
-                    ApprovalSpRecordDetail approvalSpRecordDetail = new ApprovalSpRecordDetail();
-
-                    Applyer approver = detail.getApprover();
-                    String userId = approver.getUserId();
-                    String party = approver.getParty();
-                    // TODO: 2020/9/2 调用usercenter 通过企业微信userid 查询员工信息: empId, empName
-                    EmpInfo empInfo = getEmpByUserId(userId);
-
-                    String speech = detail.getSpeech();
-                    Integer detailSpStatus = detail.getSpStatus();
-                    Long spTime = detail.getSpTime();
-
-                    approvalSpRecordDetail.setApproverEmpId(empInfo.getEmpId());
-                    approvalSpRecordDetail.setApproverEmpName(empInfo.getEmpName());
-                    approvalSpRecordDetail.setApproverUserId(userId);
-                    approvalSpRecordDetail.setSpeech(speech);
-                    approvalSpRecordDetail.setSpStatus(detailSpStatus);
-                    approvalSpRecordDetail.setSpTime(spTime);
-                    approvalSpRecordDetail.setSpRecordId(approvalSpRecord.getId());
-
-                    recordDetails.add(approvalSpRecordDetail);
                 }
                 approvalSpRecordDetailService.saveOrUpdateBatch(recordDetails);
 
@@ -206,43 +195,34 @@ public class ApprovalHandler {
      * @author Caixiaowei
      * @updateTime 2020/9/2 14:29
      */
-    private void processNotifyer(String spNo, List<Notifyer> notifyers) {
+    public void processNotifyer(String spNo, List<Notifyer> notifyers) {
         if (CollectionUtil.isNotEmpty(notifyers)) {
             List<ApprovalSpNotifyer> spNotifyers = Lists.newArrayList();
-
+            int step = 0;
             for (Notifyer notifyer : notifyers) {
                 String userId = notifyer.getUserId();
                 // TODO: 2020/9/2 调用 usercenter,根据企业微信userid查询员工信息: empId, empName
-                EmpInfo empInfo = getEmpByUserId(userId);
+                EmpInfo empInfo = commonService.getEmpByUserId(userId);
 
-                ApprovalSpNotifyer spNotifyer = new ApprovalSpNotifyer();
-                spNotifyer.setSpNo(spNo);
+                QueryWrapper<ApprovalSpNotifyer> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("sp_no", spNo);
+                queryWrapper.eq("step", step);
+                ApprovalSpNotifyer spNotifyer = approvalSpNotifyerService.getOne(queryWrapper);
+                if (spNotifyer == null) {
+                    spNotifyer = new ApprovalSpNotifyer();
+                    spNotifyer.setSpNo(spNo);
+                    spNotifyer.setStep(step);
+                }
+
                 spNotifyer.setUserId(userId);
                 spNotifyer.setEmpId(empInfo.getEmpId());
                 spNotifyer.setEmpName(empInfo.getEmpName());
 
                 spNotifyers.add(spNotifyer);
+                step ++;
             }
             approvalSpNotifyerService.saveOrUpdateBatch(spNotifyers);
         }
     }
 
-    /**
-     * 根据企业微信用户id查询员工信息
-     *
-     * @param userId 业微信用户id
-     * @return EmpInfo
-     * @author Caixiaowei
-     * @updateTime 2020/9/2 14:34
-     */
-    private EmpInfo getEmpByUserId(String userId) {
-        EmpInfo empInfo = new EmpInfo();
-
-        // TODO: 2020/9/2 待usercenter 开发完成，实现具体逻辑
-        empInfo.setQwUserId(userId);
-        empInfo.setEmpId(1L);
-        empInfo.setEmpName("张三");
-
-        return empInfo;
-    }
 }

@@ -64,4 +64,13 @@ public interface IApprovalService {
      */
     JSONObject applyEvent(ApprovalApplyDTO approvalApplyDTO);
 
+    /**
+     * 获取审批申请详情
+     *
+     * @param spNo 审批单编号
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/7 14:05
+     */
+    JSONObject getApprovalDetail(String spNo);
 }

@@ -48,9 +48,6 @@ public class ApprovalServiceImpl extends WxWorkServiceImpl implements IApprovalS
     @Autowired
     private RedisService redisService;
 
-    @Autowired
-    private IWxWorkService wxWorkService;
-
     /**
      * 获取审批应用token
      *
@@ -110,7 +107,7 @@ public class ApprovalServiceImpl extends WxWorkServiceImpl implements IApprovalS
     @Override
     public CommonResult uploadAnnex(MultipartFile file) {
         String accessToken = this.getAccessToken();
-        JSONObject upload = wxWorkService.upload(file, accessToken);
+        JSONObject upload = super.upload(file, accessToken);
         Integer errcode = upload.getInteger("errcode");
         String errmsg = upload.getString("errmsg");
         if (errcode == null || errcode != 0) {
@@ -222,20 +219,29 @@ public class ApprovalServiceImpl extends WxWorkServiceImpl implements IApprovalS
     }
 
     /**
-     * 从输入流中获取字节数组
-     * @param inputStream
-     * @return
-     * @throws IOException
+     * 获取审批申请详情
+     *
+     * @param spNo 审批单编号
+     * @return 
+     * @author Caixiaowei
+     * @updateTime 2020/9/7 14:05
      */
-    public static  byte[] readInputStream(InputStream inputStream) throws IOException {
-        byte[] buffer = new byte[1024];
-        int len = 0;
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        while((len = inputStream.read(buffer)) != -1) {
-            bos.write(buffer, 0, len);
-        }
-        bos.close();
-        return bos.toByteArray();
-    }
+    @Override
+    public JSONObject getApprovalDetail(String spNo) {
+        String accessToken = this.getAccessToken();
+        String url = "https://qyapi.weixin.qq.com/cgi-bin/oa/getapprovaldetail?access_token=ACCESS_TOKEN";
+        String replacedUrl = url.replace("ACCESS_TOKEN", accessToken);
 
+        Map<String, Object> params = Maps.newHashMap();
+        params.put("sp_no", spNo);
+        String result = OkHttpClientUtil.doPost(replacedUrl, null, params);
+        JSONObject data = JSONObject.parseObject(result);
+
+        Integer errcode = data.getInteger("errcode");
+        if (errcode != 0 ) {
+            return null;
+        }
+        JSONObject info = data.getJSONObject("info");
+        return info;
+    }
 }

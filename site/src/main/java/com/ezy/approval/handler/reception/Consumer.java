@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.ezy.approval.config.RabbitConfig;
 import com.ezy.approval.handler.ApprovalHandler;
 import com.ezy.approval.model.callback.approval.ApprovalInfo;
+import com.ezy.approval.model.callback.approval.ApprovalStatuChangeEvent;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -36,10 +37,10 @@ public class Consumer {
     public void handleMessage(Message message, Channel channel) throws IOException {
         try {
             String json = new String(message.getBody());
-            log.info("handleMessage 消费成功,消息: {}" +  json);
+            log.info("handleMessage 消费消息: {}", json);
             //业务处理
-            ApprovalInfo approvalInfo = JSONObject.parseObject(json, ApprovalInfo.class);
-            approvalHandler.handle(approvalInfo);
+            ApprovalStatuChangeEvent approvalStatuChangeEvent = JSONObject.parseObject(json, ApprovalStatuChangeEvent.class);
+            approvalHandler.handle(approvalStatuChangeEvent);
             /**
              * 防止重复消费，可以根据传过来的唯一ID先判断缓存数据中是否有数据
              * 1、有数据则不消费，直接应答处理

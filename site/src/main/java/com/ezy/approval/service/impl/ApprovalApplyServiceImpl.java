@@ -12,6 +12,7 @@ import com.ezy.approval.mapper.ApprovalApplyMapper;
 import com.ezy.approval.model.apply.ApprovalApplyDTO;
 import com.ezy.approval.model.apply.ApprovalDetailVO;
 import com.ezy.approval.model.apply.SpNotifyerVO;
+import com.ezy.approval.model.sys.EmpInfo;
 import com.ezy.approval.service.*;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.ezy.common.model.CommonResult;
@@ -19,6 +20,7 @@ import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,6 +47,8 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
     private IApprovalSpRecordService spRecordService;
     @Autowired
     private IApprovalSpRecordDetailService spRecordDetailService;
+    @Autowired
+    private ICommonService commonService;
     
 
     /**
@@ -81,12 +85,13 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         apply.setStatus(ApprovalStatusEnum.IN_REVIEW.getStatus());
         apply.setUseTemplateApprover(useTemplateApprover);
         // TODO: 2020/7/29 申请人员工信息
-        apply.setEmpId(0L);
-        apply.setWxUserId("0");
-        apply.setWxPartyId("0");
+        EmpInfo xiaowei = commonService.getEmpByUserId("xiaowei");
+        apply.setEmpId(xiaowei.getEmpId());
+        apply.setWxUserId(xiaowei.getQwUserId());
         // TODO: 2020/7/29 转换审批数据
         apply.setApplyData(JSONObject.toJSONString(approvalApplyDTO.getApplyData()));
 
+        apply.setCreateTime(LocalDateTime.now());
         this.save(apply);
 
         // 调用企业微信, 发起审批申请
