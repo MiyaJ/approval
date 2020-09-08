@@ -39,6 +39,7 @@ public class ApprovalHandler {
 
     public void handle(ApprovalStatuChangeEvent approvalStatuChangeEvent) {
         ApprovalInfo approvalInfo = approvalStatuChangeEvent.getApprovalInfo();
+
         // 审批单号
         String spNo = approvalInfo.getSpNo();
         String spName = approvalInfo.getSpName();
@@ -60,14 +61,16 @@ public class ApprovalHandler {
 
 
         // 提单, 处理审批单的抄送人, 审批节点信息, 并入库
-
+        // 消息发送时间, 时间戳, 精确到秒
+        Long createTime = approvalStatuChangeEvent.getCreateTime();
         // 处理审批单基本信息
-        processApply(approvalInfo);
-        // 处理抄送人
-        processNotifyer(spNo, notifyers);
-        // 审批流程节点处理
-        processSpRecord(spNo, spRecords);
-
+        boolean processApply = processApply(approvalInfo, createTime);
+        if (processApply) {
+            // 处理抄送人
+            processNotifyer(spNo, notifyers);
+            // 处理审批流程节点
+            processSpRecord(spNo, spRecords);
+        }
     }
 
     /**
@@ -78,8 +81,17 @@ public class ApprovalHandler {
      * @author Caixiaowei
      * @updateTime 2020/9/4 14:22
      */
-    private void processApply(ApprovalInfo approvalInfo) {
+    private boolean processApply(ApprovalInfo approvalInfo, Long createTime) {
         String spNo = approvalInfo.getSpNo();
+        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("sp_no", spNo);
+
+        ApprovalApply apply = approvalApplyService.getOne(queryWrapper);
+        if (apply != null && apply.getQwCallbackVersion() != null && apply.getQwCallbackVersion() >= createTime) {
+            // mq callback 版本低于 MySQL 中版本, 不予更新
+            return false;
+        }
+
         String spName = approvalInfo.getSpName();
         Applyer applyer = approvalInfo.getApplyer();
         String userId = applyer.getUserId();
@@ -91,10 +103,8 @@ public class ApprovalHandler {
         Long applyTime = approvalInfo.getApplyTime();
         Integer spStatus = approvalInfo.getSpStatus();
         String templateId = approvalInfo.getTemplateId();
-        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("sp_no", spNo);
 
-        ApprovalApply apply = approvalApplyService.getOne(queryWrapper);
+
         if (apply == null) {
             apply = new ApprovalApply();
             apply.setSpNo(spNo);
@@ -111,7 +121,9 @@ public class ApprovalHandler {
         apply.setApplyTime(applyTime);
         apply.setWxPartyId(party);
 
-        approvalApplyService.saveOrUpdate(apply);
+        boolean update = approvalApplyService.saveOrUpdate(apply);
+
+        return update;
     }
 
     /**

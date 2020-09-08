@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
@@ -46,5 +47,57 @@ public class DateUtil {
     public static String formatInstant(Instant instant, String format) {
         LocalDateTime localDateTime = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
         return localDateTime.format(DateTimeFormatter.ofPattern(format));
+    }
+
+    /**
+     * LocalDateTime 转 时间戳(秒级别)
+     *
+     * @param localDateTime
+     * @return Long
+     * @author Caixiaowei
+     * @updateTime 2020/9/8 10:17
+     */
+    public static Long localDateTimeToSecond(LocalDateTime localDateTime) {
+        Long epochSecond = localDateTime.toEpochSecond(ZoneOffset.ofHours(8));
+        return epochSecond;
+    }
+
+    /**
+     * LocalDateTime 转 时间戳(毫秒级别)
+     *
+     * @param localDateTime
+     * @return Long
+     * @author Caixiaowei
+     * @updateTime 2020/9/8 10:17
+     */
+    public static Long localDateTimeToMilliseconds(LocalDateTime localDateTime) {
+        long milliseconds = localDateTime.toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
+        return milliseconds;
+    }
+
+    /**
+     * 时间戳(秒) 转 LocalDateTime
+     *
+     * @param second 时间戳(秒)
+     * @return LocalDateTime
+     * @author Caixiaowei
+     * @updateTime 2020/9/8 10:20
+     */
+    public static LocalDateTime secondToLocalDateTime(Long second) {
+        LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(second, 0, ZoneOffset.ofHours(8));
+        return localDateTime;
+    }
+
+    /**
+     * 时间戳(毫秒) 转 LocalDateTime
+     *
+     * @param milliseconds 时间戳(毫秒)
+     * @return LocalDateTime
+     * @author Caixiaowei
+     * @updateTime 2020/9/8 10:20
+     */
+    public static LocalDateTime millisecondsToLocalDateTime(Long milliseconds) {
+        LocalDateTime localDateTime = Instant.ofEpochMilli(milliseconds).atZone(ZoneOffset.ofHours(8)).toLocalDateTime();
+        return localDateTime;
     }
 }

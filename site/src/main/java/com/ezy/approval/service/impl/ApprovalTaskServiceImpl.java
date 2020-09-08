@@ -7,6 +7,7 @@ import com.ezy.approval.entity.ApprovalApply;
 import com.ezy.approval.handler.CompensateHandler;
 import com.ezy.approval.service.IApprovalApplyService;
 import com.ezy.approval.service.IApprovalTaskService;
+import com.ezy.approval.utils.DateUtil;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,8 +50,7 @@ public class ApprovalTaskServiceImpl implements IApprovalTaskService {
         List<String> spNoList = Lists.newArrayList();
         if (StrUtil.isEmpty(spNo)) {
             // 超过1h未审批的单据, 去查询企微获取最新审批信息, 同步更新到MySQL
-            LocalDateTime now = LocalDateTime.now();
-            Long nowTimestamp = now.toEpochSecond(ZoneOffset.ofHours(8));
+            Long nowTimestamp = DateUtil.localDateTimeToSecond(LocalDateTime.now());
             Long timeOut = nowTimestamp - APPROVAL_TIME_OUT;
 
             QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();

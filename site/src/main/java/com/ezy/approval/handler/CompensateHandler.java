@@ -8,13 +8,15 @@ import com.ezy.approval.model.callback.approval.Applyer;
 import com.ezy.approval.model.callback.approval.Notifyer;
 import com.ezy.approval.model.callback.approval.SpRecord;
 import com.ezy.approval.model.sys.EmpInfo;
-import com.ezy.approval.service.*;
+import com.ezy.approval.service.IApprovalApplyService;
+import com.ezy.approval.service.IApprovalService;
+import com.ezy.approval.service.ICommonService;
+import com.ezy.approval.utils.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 
 /**
@@ -85,9 +87,7 @@ public class CompensateHandler {
             apply = new ApprovalApply();
             apply.setSpNo(spNo);
             apply.setCreateBy(empInfo.getEmpId());
-            // 将时间戳转为当前时间
-            LocalDateTime localDateTime = LocalDateTime.ofEpochSecond(applyTime, 0, ZoneOffset.ofHours(8));
-            apply.setCreateTime(localDateTime);
+            apply.setCreateTime(DateUtil.secondToLocalDateTime(applyTime));
 
         }
         apply.setTemplateId(templateId);
@@ -99,8 +99,10 @@ public class CompensateHandler {
         apply.setWxPartyId(party);
         apply.setApplyData(applyData.toString());
         apply.setCreateBy(empInfo.getEmpId());
-        apply.setUpdateTime(LocalDateTime.now());
 
+        LocalDateTime now = LocalDateTime.now();
+        apply.setUpdateTime(now);
+        apply.setQwCallbackVersion(DateUtil.localDateTimeToSecond(now));
         approvalApplyService.saveOrUpdate(apply);
     }
 }
