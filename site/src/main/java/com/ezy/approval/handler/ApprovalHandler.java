@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Caixiaowei
@@ -82,6 +83,8 @@ public class ApprovalHandler {
      * @updateTime 2020/9/4 14:22
      */
     private boolean processApply(ApprovalInfo approvalInfo, Long createTime) {
+        boolean result = false;
+
         String spNo = approvalInfo.getSpNo();
         QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("sp_no", spNo);
@@ -108,22 +111,35 @@ public class ApprovalHandler {
         if (apply == null) {
             apply = new ApprovalApply();
             apply.setSpNo(spNo);
-            apply.setCreateBy(empInfo.getEmpId());
+            apply.setCreateBy(empId);
             apply.setCreateTime(LocalDateTime.now());
             apply.setSpName(spName);
             apply.setTemplateId(templateId);
 
+            apply.setWxUserId(userId);
+            apply.setWxPartyId(party);
+            apply.setEmpId(empId);
+            apply.setStatus(spStatus);
+            apply.setApplyTime(applyTime);
+            apply.setWxPartyId(party);
+            apply.setQwCallbackVersion(createTime);
+
+            result = approvalApplyService.save(apply);
+        } else {
+            apply.setWxUserId(userId);
+            apply.setWxPartyId(party);
+            apply.setEmpId(empId);
+            apply.setStatus(spStatus);
+            apply.setApplyTime(applyTime);
+            apply.setWxPartyId(party);
+            apply.setQwCallbackVersion(createTime);
+
+            queryWrapper.lt("qw_callback_version", createTime);
+            result = approvalApplyService.update(apply, queryWrapper);
         }
-        apply.setWxUserId(userId);
-        apply.setWxPartyId(party);
-        apply.setEmpId(empId);
-        apply.setStatus(spStatus);
-        apply.setApplyTime(applyTime);
-        apply.setWxPartyId(party);
 
-        boolean update = approvalApplyService.saveOrUpdate(apply);
 
-        return update;
+        return result;
     }
 
     /**
@@ -235,6 +251,13 @@ public class ApprovalHandler {
             }
             approvalSpNotifyerService.saveOrUpdateBatch(spNotifyers);
         }
+    }
+
+    public static void main(String[] args) {
+        List<Integer> list = Lists.newArrayList(864,482,899,548,612,613,901,298,715,816,912,304,307,916,308,408,920,409,410,923,413);
+        List<Integer> collect = list.stream().sorted().collect(Collectors.toList());
+        System.out.println(collect);
+        System.out.println(collect.size());
     }
 
 }
