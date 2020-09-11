@@ -1,8 +1,12 @@
 package com.ezy.approval.handler.reception;
 
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.ezy.approval.config.RabbitConfig;
+import com.ezy.approval.entity.RabbitMessage;
 import com.ezy.approval.handler.ApprovalHandler;
+import com.ezy.approval.model.callback.approval.ApprovalStatuChangeEvent;
+import com.ezy.approval.service.IRabbitMessageService;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
@@ -28,6 +32,8 @@ public class Consumer {
 
     @Autowired
     private ApprovalHandler approvalHandler;
+    @Autowired
+    private IRabbitMessageService rabbitMessageService;
 
     private int getNO() {
         return i.getAndIncrement();
@@ -44,8 +50,6 @@ public class Consumer {
         if (StrUtil.isEmpty(messageId)) {
             return;
         }
-        String json = new String(message.getBody(), "UTF-8");
-        log.info("message: {}", json);
         /**
          * 防止重复消费，可以根据传过来的唯一ID先判断缓存数据中是否有数据
          * 1、有数据则不消费，直接应答处理
@@ -53,45 +57,31 @@ public class Consumer {
          * 3、如果消息 处理异常则，可以存入数据库中，手动处理（可以增加短信和邮件提醒功能）
          */
         // TODO: 2020/9/9 查找messageId 是否已消费
-//        boolean consumed = false;
-//        if (!consumed) {
-//            try {
-//                String json = new String(message.getBody(), "UTF-8");
-//                log.info("handleMessage 消费消息: {}", json);
-//                //业务处理
-//                ApprovalStatuChangeEvent approvalStatuChangeEvent = JSONObject.parseObject(json, ApprovalStatuChangeEvent.class);
-//                approvalHandler.handle(approvalStatuChangeEvent);
-//
-//                //手动应答
-//                channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
-//            }catch (Exception e){
-//                log.error("handleMessage 消费失败,message: {}, error: {}"+ message.getBody(), e);
-//                // 处理消息失败，将消息重新放回队列
-//                channel.basicNack(message.getMessageProperties().getDeliveryTag(), false,true);
-//            }
-//
-//        } else {
-//            // TODO: 2020/9/9 缓存已消费的 mq
-//
-//            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
-//        }
-
         try {
-//            int no = getNO();
-//            log.info("no: {}", no);
-//            no ++;
-            int a = 1/0;
+            RabbitMessage rabbitMessage = rabbitMessageService.getById(Long.valueOf(messageId));
+            Boolean isConsumed = rabbitMessage.getIsConsumed();
+            String json = new String(message.getBody(), "UTF-8");
+            log.info("handleMessage 消费消息: {}", json);
+            if (!isConsumed) {
+                //业务处理
+                ApprovalStatuChangeEvent approvalStatuChangeEvent = JSONObject.parseObject(json, ApprovalStatuChangeEvent.class);
+                approvalHandler.handle(approvalStatuChangeEvent);
 
-        } catch (Exception e) {
-            int no = getNO();
-            log.info(" 第 N 次重试no : {}, messageId:{}", no, messageId);
-            log.info(" 第 N 次重试i: {}, messageId:{}", i, messageId);
-            if (i.get() < 5) {
-                channel.basicNack(message.getMessageProperties().getDeliveryTag(), false,true);
+                // 消费成功, 更新消息记录状态为: 已消费
+                rabbitMessage.setIsConsumed(true);
+                rabbitMessageService.updateById(rabbitMessage);
+
+                //手动应答
+                channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
             } else {
-                i.set(1);
+                channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
             }
 
+        } catch (Exception e) {
+            log.error("handleMessage 消费失败,message: {}, error: {}"+ message.getBody(), e);
+            // 处理消息失败，将消息重新放回队列
+            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
+//                channel.basicNack(message.getMessageProperties().getDeliveryTag(), false,true);
         }
 
     }
