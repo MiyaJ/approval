@@ -1,4 +1,4 @@
-package com.ezy.approval.handler.reception;
+package com.ezy.approval.handler.rabbit;
 
 import com.ezy.approval.config.RabbitConfig;
 import org.springframework.amqp.rabbit.connection.CorrelationData;

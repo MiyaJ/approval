@@ -1,9 +1,11 @@
 package com.ezy.approval.handler;
 
+import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ezy.approval.entity.ApprovalApply;
+import com.ezy.approval.entity.RabbitMessage;
 import com.ezy.approval.model.callback.approval.Applyer;
 import com.ezy.approval.model.callback.approval.Notifyer;
 import com.ezy.approval.model.callback.approval.SpRecord;
@@ -11,13 +13,16 @@ import com.ezy.approval.model.sys.EmpInfo;
 import com.ezy.approval.service.IApprovalApplyService;
 import com.ezy.approval.service.IApprovalService;
 import com.ezy.approval.service.ICommonService;
+import com.ezy.approval.service.IRabbitMessageService;
 import com.ezy.approval.utils.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Caixiaowei
@@ -37,6 +42,8 @@ public class CompensateHandler {
     private ICommonService commonService;
     @Autowired
     private ApprovalHandler approvalHandler;
+    @Autowired
+    private IRabbitMessageService rabbitMessageService;
 
     /**
      * 补偿审批单据
@@ -104,5 +111,35 @@ public class CompensateHandler {
         apply.setUpdateTime(now);
         apply.setQwCallbackVersion(DateUtil.localDateTimeToSecond(now));
         approvalApplyService.saveOrUpdate(apply);
+    }
+
+    /**
+     * 审批节点不可用重启:
+     * 从mq 获取未发送的 消息, 更新审批单据
+     *
+     * @param
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/14 11:12
+     */
+    @Async
+    public void compensateApprovalRestart() {
+        log.info("compensateApprovalRestart------->begin--->");
+        // 查询发送失败的消息审批单据
+        QueryWrapper<RabbitMessage> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("type", RabbitMessage.MESSAGE_TYPE_APPROVAL);
+        queryWrapper.eq("is_send", false);
+        queryWrapper.eq("is_deleted", false);
+        List<RabbitMessage> list = rabbitMessageService.list(queryWrapper);
+        if (CollectionUtil.isNotEmpty(list)) {
+            List<String> spNos = list.stream().map(RabbitMessage::getSpNo).distinct().collect(Collectors.toList());
+            if (CollectionUtil.isNotEmpty(spNos)) {
+                log.info("compensateApprovalRestart------->spNos: {}", spNos.size());
+                for (String spNo : spNos) {
+                    this.compensateApprovalDetail(spNo);
+                }
+            }
+        }
+        log.info("compensateApprovalRestart------->end--->");
     }
 }

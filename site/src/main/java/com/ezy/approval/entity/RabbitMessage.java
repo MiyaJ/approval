@@ -40,6 +40,11 @@ public class RabbitMessage implements Serializable {
     private String type;
 
     /**
+     * 审批单编号
+     */
+    private String spNo;
+
+    /**
      * 消息内容
      */
     private String content;

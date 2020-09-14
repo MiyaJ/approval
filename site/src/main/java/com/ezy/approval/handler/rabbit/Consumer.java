@@ -1,4 +1,4 @@
-package com.ezy.approval.handler.reception;
+package com.ezy.approval.handler.rabbit;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;

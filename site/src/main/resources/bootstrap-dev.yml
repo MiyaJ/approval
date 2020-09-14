@@ -29,3 +29,7 @@ spring:
 approval:
   time:
     out: 3600
+
+logging:
+  level:
+    com.ezy.approval.mapper: debug

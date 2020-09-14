@@ -1,21 +1,23 @@
 package com.ezy.approval.handler;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.ezy.approval.entity.ApprovalApply;
-import com.ezy.approval.entity.ApprovalSpNotifyer;
-import com.ezy.approval.entity.ApprovalSpRecord;
-import com.ezy.approval.entity.ApprovalSpRecordDetail;
+import com.ezy.approval.entity.*;
 import com.ezy.approval.model.callback.approval.*;
 import com.ezy.approval.model.sys.EmpInfo;
 import com.ezy.approval.service.*;
+import com.ezy.approval.utils.OkHttpClientUtil;
+import com.ezy.common.enums.ApprovalStatusEnum;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * @author Caixiaowei
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
  * @createTime 2020年07月31日 13:59:00
  */
 @Service
+@Slf4j
 public class ApprovalHandler {
 
     @Autowired
@@ -36,6 +39,8 @@ public class ApprovalHandler {
     private IApprovalSpRecordDetailService approvalSpRecordDetailService;
     @Autowired
     private ICommonService commonService;
+    @Autowired
+    private IApprovalTemplateSystemService approvalTemplateSystemService;
 
 
     public void handle(ApprovalStatuChangeEvent approvalStatuChangeEvent) {
@@ -71,6 +76,53 @@ public class ApprovalHandler {
             processNotifyer(spNo, notifyers);
             // 处理审批流程节点
             processSpRecord(spNo, spRecords);
+
+            // 通过或者驳回, 回调通知调用方
+            if (spStatus.equals(ApprovalStatusEnum.APPROVED.getStatus())
+            || spStatus.equals(ApprovalStatusEnum.DISMISSED.getStatus())) {
+                this.approvalResultCallback(spNo);
+            }
+        }
+    }
+
+
+    /**
+     * 审批结果回调通知调用方
+     *
+     * @param spNo 审批单编号
+     * @return void
+     * @author Caixiaowei
+     * @updateTime 2020/9/14 15:04
+     */
+    public void approvalResultCallback(String spNo) {
+        String callbackUrl = StrUtil.EMPTY;
+        Integer status = null;
+
+        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("sp_no", spNo);
+        ApprovalApply apply = approvalApplyService.getOne(queryWrapper);
+        if (apply != null) {
+            String templateId = apply.getTemplateId();
+            String systemCode = apply.getSystemCode();
+            status = apply.getStatus();
+
+            QueryWrapper<ApprovalTemplateSystem> wrapper = new QueryWrapper<>();
+            wrapper.eq("system_code", systemCode);
+            wrapper.eq("template_id", templateId);
+            ApprovalTemplateSystem approvalTemplateSystem = approvalTemplateSystemService.getOne(wrapper);
+            if (approvalTemplateSystem != null) {
+                callbackUrl = approvalTemplateSystem.getCallbackUrl();
+            }
+        }
+
+        if (StrUtil.isNotEmpty(callbackUrl)) {
+            try {
+                Map<String, String> params = Maps.newHashMap();
+                params.put("status", String.valueOf(status));
+                OkHttpClientUtil.doGet(callbackUrl, null, params);
+            } catch (Exception e) {
+                log.error("审批结果回调通知调用方 错误, 审批单号: {}", spNo);
+            }
         }
     }
 
@@ -251,13 +303,6 @@ public class ApprovalHandler {
             }
             approvalSpNotifyerService.saveOrUpdateBatch(spNotifyers);
         }
-    }
-
-    public static void main(String[] args) {
-        List<Integer> list = Lists.newArrayList(864,482,899,548,612,613,901,298,715,816,912,304,307,916,308,408,920,409,410,923,413);
-        List<Integer> collect = list.stream().sorted().collect(Collectors.toList());
-        System.out.println(collect);
-        System.out.println(collect.size());
     }
 
 }
