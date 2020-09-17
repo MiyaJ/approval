@@ -20,4 +20,14 @@ public class RedisConstans {
      * 审批应用接口token
      */
     public static final String QYWX_ACCESS_TOKEN_KEY_MESSAGE = "qywx:access_token:message";
+
+    /**
+     * 审批超时单据编号set
+     */
+    public static final String APPROVAL_TIME_OUT_NO = "approval:timeOut:no";
+
+    /**
+     * 审批失败次数
+     */
+    public static final String APPROVAL_CONSUMER_FAIL_COUNT_PREFIX = "approval:consumer:fail:count:";
 }

@@ -7,7 +7,9 @@ import com.ezy.approval.entity.ApprovalApply;
 import com.ezy.approval.handler.CompensateHandler;
 import com.ezy.approval.service.IApprovalApplyService;
 import com.ezy.approval.service.IApprovalTaskService;
+import com.ezy.approval.service.RedisService;
 import com.ezy.approval.utils.DateUtil;
+import com.ezy.common.constants.RedisConstans;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +39,8 @@ public class ApprovalTaskServiceImpl implements IApprovalTaskService {
     private IApprovalApplyService approvalApplyService;
     @Autowired
     private CompensateHandler compensateHandler;
+    @Autowired
+    private RedisService redisService;
 
     /**
      * 补偿审批单据
@@ -66,7 +71,18 @@ public class ApprovalTaskServiceImpl implements IApprovalTaskService {
         if (CollectionUtil.isNotEmpty(spNoList)) {
             log.info("超过1h未审批的单据--->{}", spNoList);
             for (String sp : spNoList) {
-                compensateHandler.compensateApprovalDetail(sp);
+                /**
+                 * 确认缓存中是否存在此超时单据
+                 * 若存在则不处理,
+                 * 不存在, 则补偿并把单据编号缓存
+                 */
+                if (redisService.sHasKey(RedisConstans.APPROVAL_TIME_OUT_NO, sp)) {
+                    return;
+                } else {
+                    compensateHandler.compensateApprovalDetail(sp);
+                    redisService.sSet(RedisConstans.APPROVAL_TIME_OUT_NO, sp);
+                }
+
             }
         }
     }

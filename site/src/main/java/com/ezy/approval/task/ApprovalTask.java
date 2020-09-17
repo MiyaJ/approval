@@ -2,6 +2,8 @@ package com.ezy.approval.task;
 
 import cn.hutool.core.util.StrUtil;
 import com.ezy.approval.service.IApprovalTaskService;
+import com.ezy.approval.service.RedisService;
+import com.ezy.common.constants.RedisConstans;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -21,6 +23,8 @@ public class ApprovalTask {
 
     @Autowired
     private IApprovalTaskService approvalTaskService;
+    @Autowired
+    private RedisService redisService;
 
 
     /**
@@ -32,9 +36,21 @@ public class ApprovalTask {
      * @updateTime 2020/9/7 16:17
      */
     @Scheduled(cron = "0 0/5 * * * ?")
-//    @Scheduled(cron = "0/5 * * * * ?")
-    private void configureTasks3() {
+    private void compensateApproval() {
         approvalTaskService.compensateApproval(StrUtil.EMPTY);
+    }
+
+    /**
+     * 每日4点清除审批超时缓存
+     *
+     * @param
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/7 16:17
+     */
+    @Scheduled(cron = "0 0 4 * * ?")
+    private void cleanApprovalTimeount() {
+        redisService.delete(RedisConstans.APPROVAL_TIME_OUT_NO);
     }
 
 }
