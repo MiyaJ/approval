@@ -197,6 +197,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         String templateId = approvalTemplateAddDTO.getTemplateId();
         String systemCode = approvalTemplateAddDTO.getSystemCode();
         String callbackUrl = approvalTemplateAddDTO.getCallbackUrl();
+        String qwContactPerson = approvalTemplateAddDTO.getQwContactPerson();
 
         ApprovalTemplate template = getByTemplateId(templateId);
         if (template == null) {
@@ -214,6 +215,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         templateSystem.setTemplateId(templateId);
         templateSystem.setSystemCode(systemCode);
         templateSystem.setCallbackUrl(callbackUrl);
+        templateSystem.setQwContactPerson(qwContactPerson);
         templateSystemService.save(templateSystem);
         return CommonResult.success("配置模板成功!");
     }

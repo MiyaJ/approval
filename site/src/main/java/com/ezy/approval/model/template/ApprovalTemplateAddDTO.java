@@ -35,4 +35,9 @@ public class ApprovalTemplateAddDTO implements Serializable {
      * 模板样式示例图url
      */
     private String patternImage;
+
+    /**
+     * 回调通知企微userid
+     */
+    private String qwContactPerson;
 }
