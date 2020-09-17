@@ -74,12 +74,12 @@ public interface IMessageService {
     /**
      * 修改群聊
      *
-     * @param groupChatUpdateDTO
+     * @param updateData
      * @return 
      * @author Caixiaowei
      * @updateTime 2020/9/15 11:36
      */
-    void updateGroupChat(GroupChatUpdateDTO groupChatUpdateDTO);
+    JSONObject updateGroupChat(JSONObject updateData);
 
     /**
      * 获取群聊

@@ -34,4 +34,14 @@ public class GroupChatCreateDTO implements Serializable {
      * 群id,非必填会随机生成
      */
     private String chatid;
+
+    /**
+     * 添加成员id列表
+     */
+    private List<String> addUserList;
+
+    /**
+     * 删除成员列表
+     */
+    private List<String> delUserList;
 }

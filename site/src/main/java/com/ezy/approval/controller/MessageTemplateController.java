@@ -1,6 +1,7 @@
 package com.ezy.approval.controller;
 
 
+import com.ezy.approval.model.message.template.MessageTemplateBindDTO;
 import com.ezy.approval.model.message.template.MessageTemplateDTO;
 import com.ezy.approval.service.IMessageTemplateService;
 import com.ezy.common.model.CommonResult;
@@ -25,10 +26,30 @@ public class MessageTemplateController {
     @Autowired
     private IMessageTemplateService messageTemplateService;
 
+    /**
+     * 创建消息模板
+     *
+     * @param messageTemplateDTO
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 10:43
+     */
     @PostMapping
     public CommonResult create(@RequestBody MessageTemplateDTO messageTemplateDTO) {
+        return messageTemplateService.create(messageTemplateDTO);
+    }
 
-        return CommonResult.success(null);
+    /**
+     * 系统绑定消息模板
+     *
+     * @param bindDTO
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 10:57
+     */
+    @PostMapping("/bind")
+    public CommonResult bind(@RequestBody MessageTemplateBindDTO bindDTO) {
+        return messageTemplateService.bind(bindDTO);
     }
 }
 

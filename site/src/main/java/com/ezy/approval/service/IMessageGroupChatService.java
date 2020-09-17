@@ -31,7 +31,8 @@ public interface IMessageGroupChatService extends IService<MessageGroupChat> {
      * @param 
      * @return 
      * @author Caixiaowei
-     * @updateTime 2020/9/15 18:05
+     * @updateTime 2020/9/16 9:40
      */
     CommonResult updateGroupChat(GroupChatCreateDTO groupChatCreateDTO);
+
 }

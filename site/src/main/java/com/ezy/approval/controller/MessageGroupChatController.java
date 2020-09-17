@@ -33,7 +33,7 @@ public class MessageGroupChatController {
      * @author Caixiaowei
      * @updateTime 2020/9/15 15:04
      */
-    @PostMapping
+    @PostMapping("/create")
     public CommonResult create(@RequestBody GroupChatCreateDTO groupChatCreateDTO) {
         return messageGroupChatService.create(groupChatCreateDTO);
     }
@@ -46,9 +46,10 @@ public class MessageGroupChatController {
      * @author Caixiaowei
      * @updateTime 2020/9/15 18:04
      */
-    @PostMapping
+    @PostMapping("/update")
     public CommonResult update(@RequestBody GroupChatCreateDTO groupChatCreateDTO) {
         return messageGroupChatService.updateGroupChat(groupChatCreateDTO);
     }
+
 }
 

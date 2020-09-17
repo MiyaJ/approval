@@ -37,6 +37,13 @@ public class MessageTemplate implements Serializable {
     private String name;
 
     /**
+     * 消息类型: text-文本消息; image-图片消息; voice-语音消息; video-视频消息; file-文件消息; textcard-文本卡片消息;
+     * news-图文消息; mpnews-图文消息; markdown-markdown消息; miniprogram_notice-小程序消息; taskcard-任务卡消息'
+     *
+     */
+    private String type;
+
+    /**
      * 模板内容
      */
     private String content;
@@ -64,7 +71,7 @@ public class MessageTemplate implements Serializable {
     /**
      * 状态: 启用/未启用
      */
-    private Integer status;
+    private Boolean status;
 
     /**
      * 删除标识: 0未删除; 1 已删除

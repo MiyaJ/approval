@@ -32,7 +32,7 @@ import java.util.List;
 @Service
 public class MessageServiceImpl extends WxWorkServiceImpl implements IMessageService {
 
-    @Value("${qywx.message-corpsecret}")
+    @Value("${qywx.msg-corpsecret}")
     private String MESSAGE_SECRET;
 
     @Autowired
@@ -77,7 +77,7 @@ public class MessageServiceImpl extends WxWorkServiceImpl implements IMessageSer
     @Override
     public MsgVO sendMsg(JSONObject msg) {
         String accessToken = this.getAccessToken();
-        String url = "https://qyapi.weixin.qq.com/cgi-bin/oa/applyevent?access_token=ACCESS_TOKEN";
+        String url = "https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=ACCESS_TOKEN";
         String replacedUrl = url.replace("ACCESS_TOKEN", accessToken);
 
         log.info("sendMsg --->{}", msg.toJSONString());
@@ -163,14 +163,17 @@ public class MessageServiceImpl extends WxWorkServiceImpl implements IMessageSer
     /**
      * 修改群聊
      *
-     * @param groupChatUpdateDTO
+     * @param updateData
      * @return
      * @author Caixiaowei
      * @updateTime 2020/9/15 11:36
      */
     @Override
-    public void updateGroupChat(GroupChatUpdateDTO groupChatUpdateDTO) {
-
+    public JSONObject updateGroupChat(JSONObject updateData) {
+        String url = "https://qyapi.weixin.qq.com/cgi-bin/appchat/update?access_token=ACCESS_TOKEN";
+        String resultStr = OkHttpClientUtil.doPost(url, null, updateData);
+        JSONObject result = JSONObject.parseObject(resultStr);
+        return result;
     }
 
     /**

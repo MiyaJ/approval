@@ -39,4 +39,5 @@ public class MessageTemplateDTO implements Serializable {
     private String requestParam;
 
     private String response;
+
 }

@@ -1,6 +1,8 @@
 package com.ezy.approval.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ezy.approval.entity.MessageGroupChat;
 import com.ezy.approval.entity.MessageGroupChatUser;
@@ -12,6 +14,7 @@ import com.ezy.approval.service.IMessageGroupChatUserService;
 import com.ezy.approval.service.IMessageService;
 import com.ezy.common.model.CommonResult;
 import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +30,7 @@ import java.util.List;
  * @since 2020-07-27
  */
 @Service
+@Slf4j
 public class MessageGroupChatServiceImpl extends ServiceImpl<MessageGroupChatMapper, MessageGroupChat> implements IMessageGroupChatService {
 
     @Autowired
@@ -82,10 +86,61 @@ public class MessageGroupChatServiceImpl extends ServiceImpl<MessageGroupChatMap
     @Override
     public CommonResult updateGroupChat(GroupChatCreateDTO groupChatCreateDTO) {
         String chatid = groupChatCreateDTO.getChatid();
-        QueryWrapper<MessageGroupChat> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("chaid", chatid);
-        MessageGroupChat groupChat = this.getOne(queryWrapper);
+        String name = groupChatCreateDTO.getName();
+        String owner = groupChatCreateDTO.getOwner();
+        List<String> addUserList = groupChatCreateDTO.getAddUserList();
+        List<String> delUserList = groupChatCreateDTO.getDelUserList();
+        // 先更新企微, 然后同步本地db
+        JSONObject updateData = new JSONObject();
+        updateData.put("chatid", chatid);
+        if (StrUtil.isNotEmpty(name)) {
+            updateData.put("name", name);
+        }
+        if (StrUtil.isNotEmpty(owner)) {
+            updateData.put("owner", owner);
+        }
+        if (CollectionUtil.isNotEmpty(addUserList)) {
+            updateData.put("add_user_list", addUserList);
+        }
+        if (CollectionUtil.isNotEmpty(delUserList)) {
+            updateData.put("del_user_list", delUserList);
+        }
+        JSONObject result = messageService.updateGroupChat(updateData);
+        if (result.getIntValue("errcode") == 0) {
+            QueryWrapper<MessageGroupChat> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("chaid", chatid);
+            MessageGroupChat groupChat = this.getOne(queryWrapper);
+            if (StrUtil.isNotEmpty(name)) {
+                groupChat.setName(name);
+            }
+            if (StrUtil.isNotEmpty(owner)) {
+                groupChat.setOwner(owner);
+            }
+            this.updateById(groupChat);
 
-        return null;
+            // 更新群成员
+            if (CollectionUtil.isNotEmpty(delUserList)) {
+                QueryWrapper<MessageGroupChatUser> chatUserQueryWrapper = new QueryWrapper<>();
+                chatUserQueryWrapper.eq("chatid", chatid);
+                chatUserQueryWrapper.in("userid", delUserList);
+                messageGroupChatUserService.remove(chatUserQueryWrapper);
+            }
+            if (CollectionUtil.isNotEmpty(addUserList)) {
+                List<MessageGroupChatUser> insertList = Lists.newArrayList();
+                for (String userid : addUserList) {
+                    MessageGroupChatUser chatUser = new MessageGroupChatUser();
+                    chatUser.setChatid(chatid);
+                    chatUser.setUserid(userid);
+
+                    insertList.add(chatUser);
+                }
+                messageGroupChatUserService.saveOrUpdateBatch(insertList);
+            }
+        } else {
+            log.error("更新群聊异常: {}", result.getString("errmsg"));
+            return CommonResult.failed("更新群聊异常");
+        }
+        return CommonResult.success(null);
     }
+
 }

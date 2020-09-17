@@ -81,4 +81,7 @@ public enum MsgTypeEnum {
         this.value = value;
     }
 
+    public String getValue() {
+        return this.value;
+    }
 }
