@@ -3,6 +3,7 @@ package com.ezy.approval.controller;
 
 import com.ezy.approval.model.template.ApprovalTemplateAddDTO;
 import com.ezy.approval.model.template.TemplateDetailVO;
+import com.ezy.approval.model.template.TemplateQueryDTO;
 import com.ezy.approval.service.IApprovalTemplateService;
 import com.ezy.common.model.CommonResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,24 +53,55 @@ public class ApprovalTemplateController {
     }
 
     /**
-     * 注册模板
+     * 配置系统与审批模板模板
      * @description 调用方系统注册模板, 未注册无法使用
      * @author Caixiaowei
      * @param approvalTemplateAddDTO ApprovalTemplateAddDTO 模板注册信息
      * @updateTime 2020/7/29 15:24
      * @return
      */
-    @PostMapping("/register")
-    public CommonResult register(ApprovalTemplateAddDTO approvalTemplateAddDTO) {
-        // TODO: 2020/7/29 调用方系统注册模板: 暂时审批管理员操作
-        return CommonResult.success("注册成功!");
+    @PostMapping("/bind")
+    public CommonResult bind(@RequestBody ApprovalTemplateAddDTO approvalTemplateAddDTO) {
+        return templateService.bind(approvalTemplateAddDTO);
     }
 
+    /**
+     * 接触系统与模板的绑定
+     * @description 调用方系统注册模板, 未注册无法使用
+     * @author Caixiaowei
+     * @param approvalTemplateAddDTO ApprovalTemplateAddDTO 模板注册信息
+     * @updateTime 2020/7/29 15:24
+     * @return
+     */
+    @PostMapping("/unbind")
+    public CommonResult unbind(@RequestBody ApprovalTemplateAddDTO approvalTemplateAddDTO) {
+        return templateService.unbind(approvalTemplateAddDTO);
+    }
 
-    public CommonResult list() {
+    /**
+     * 查询系统已配置绑定的模板
+     *
+     * @param systemCode 系统编码
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 14:22
+     */
+    @GetMapping("/listOfSystem")
+    public CommonResult listOfSystem(String systemCode) {
+        return templateService.listOfSystem(systemCode);
+    }
 
-        // TODO: 2020/7/29 审批管理后台使用
-        return CommonResult.success("查询模板列表成功!");
+    /**
+     * 查询模板列表
+     *
+     * @param templateQueryDTO 筛选条件
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 14:43
+     */
+    @GetMapping("/list")
+    public CommonResult list(TemplateQueryDTO templateQueryDTO) {
+        return templateService.list(templateQueryDTO);
     }
 }
 

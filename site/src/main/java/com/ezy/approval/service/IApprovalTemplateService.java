@@ -4,6 +4,7 @@ import com.ezy.approval.entity.ApprovalTemplate;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ezy.approval.model.template.ApprovalTemplateAddDTO;
 import com.ezy.approval.model.template.TemplateDetailVO;
+import com.ezy.approval.model.template.TemplateQueryDTO;
 import com.ezy.common.model.CommonResult;
 
 /**
@@ -46,4 +47,44 @@ public interface IApprovalTemplateService extends IService<ApprovalTemplate> {
      * @return ApprovalTemplate
      */
     ApprovalTemplate getByTemplateId(String templateId);
+
+    /**
+     * 系统配置审批模板
+     *
+     * @param approvalTemplateAddDTO
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 13:57
+     */
+    CommonResult bind(ApprovalTemplateAddDTO approvalTemplateAddDTO);
+
+    /**
+     * 解绑系统与审批模板关系
+     *
+     * @param approvalTemplateAddDTO
+     * @return 
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 14:03
+     */
+    CommonResult unbind(ApprovalTemplateAddDTO approvalTemplateAddDTO);
+
+    /**
+     * 查询系统已配置绑定的模板
+     *
+     * @param systemCode 系统编码
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 14:22
+     */
+    CommonResult listOfSystem(String systemCode);
+
+    /**
+     * 查询模板列表
+     *
+     * @param templateQueryDTO 筛选条件
+     * @return 
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 14:44
+     */
+    CommonResult list(TemplateQueryDTO templateQueryDTO);
 }

@@ -28,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -46,6 +47,8 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
     private IApprovalService approvalService;
     @Autowired
     private IApprovalTemplateSystemService templateSystemService;
+    @Autowired
+    private ApprovalTemplateMapper approvalTemplateMapper;
 
     /**
      * 新增审批模板
@@ -110,16 +113,15 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         this.save(template);
 
         // 3. 维护模板与调用方关系
-        ApprovalTemplateSystem approvalTemplateSystem = new ApprovalTemplateSystem();
-        approvalTemplateSystem.setTemplateId(templateId);
-        approvalTemplateSystem.setSystemCode(systemCode);
-        approvalTemplateSystem.setCallbackUrl(callbackUrl);
+        if (StrUtil.isNotEmpty(systemCode)) {
+            ApprovalTemplateSystem approvalTemplateSystem = new ApprovalTemplateSystem();
+            approvalTemplateSystem.setTemplateId(templateId);
+            approvalTemplateSystem.setSystemCode(systemCode);
+            approvalTemplateSystem.setCallbackUrl(callbackUrl);
 
-        templateSystemService.save(approvalTemplateSystem);
-
-        log.info("add template: {}", "新增审批模板成功");
-        CommonResult<String> success = CommonResult.success("新增审批模板成功!");
-        return success;
+            templateSystemService.save(approvalTemplateSystem);
+        }
+        return CommonResult.success("新增审批模板成功!");
     }
 
     /**
@@ -137,13 +139,13 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         TemplateDetailVO detailVO = new TemplateDetailVO();
 
         // 校验调用方是否注册次模板
-        QueryWrapper<ApprovalTemplateSystem> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("template_id", templateId)
-                .eq("system_code", systemCode);
-        ApprovalTemplateSystem one = templateSystemService.getOne(queryWrapper);
-        if (one == null) {
-            return CommonResult.success("没有注册这个模板, 请联系管理员.");
-        }
+//        QueryWrapper<ApprovalTemplateSystem> queryWrapper = new QueryWrapper<>();
+//        queryWrapper.eq("template_id", templateId)
+//                .eq("system_code", systemCode);
+//        ApprovalTemplateSystem one = templateSystemService.getOne(queryWrapper);
+//        if (one == null) {
+//            return CommonResult.success("没有注册这个模板, 请联系管理员.");
+//        }
 
         ApprovalTemplate template = getByTemplateId(templateId);
         // 校验模板
@@ -166,8 +168,154 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         return CommonResult.success(detailVO);
     }
 
+    /**
+     * 根据模板id查询模板
+     * @description
+     * @author Caixiaowei
+     * @param templateId: string 模板id
+     * @updateTime 2020/7/29 14:06
+     * @return ApprovalTemplate
+     */
+    @Override
+    public ApprovalTemplate getByTemplateId(String templateId) {
+        QueryWrapper<ApprovalTemplate> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("template_id", templateId);
+        return this.getOne(queryWrapper);
+    }
+
+    /**
+     * 系统配置审批模板
+     *
+     * @param approvalTemplateAddDTO
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 13:56
+     */
+    @Override
+    public CommonResult bind(ApprovalTemplateAddDTO approvalTemplateAddDTO) {
+
+        String templateId = approvalTemplateAddDTO.getTemplateId();
+        String systemCode = approvalTemplateAddDTO.getSystemCode();
+        String callbackUrl = approvalTemplateAddDTO.getCallbackUrl();
+
+        ApprovalTemplate template = getByTemplateId(templateId);
+        if (template == null) {
+            return CommonResult.failed("模板不存在, 请联系管理员!");
+        }
+
+        QueryWrapper<ApprovalTemplateSystem> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("system_code", systemCode);
+        queryWrapper.eq("template_id", templateId);
+        ApprovalTemplateSystem templateSystem = templateSystemService.getOne(queryWrapper);
+        if (templateSystem != null) {
+            return CommonResult.failed("模板已经配置!");
+        }
+        templateSystem = new ApprovalTemplateSystem();
+        templateSystem.setTemplateId(templateId);
+        templateSystem.setSystemCode(systemCode);
+        templateSystem.setCallbackUrl(callbackUrl);
+        templateSystemService.save(templateSystem);
+        return CommonResult.success("配置模板成功!");
+    }
+
+    /**
+     * 解绑系统与审批模板关系
+     *
+     * @param approvalTemplateAddDTO
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 14:03
+     */
+    @Override
+    public CommonResult unbind(ApprovalTemplateAddDTO approvalTemplateAddDTO) {
+        String templateId = approvalTemplateAddDTO.getTemplateId();
+        String systemCode = approvalTemplateAddDTO.getSystemCode();
+        QueryWrapper<ApprovalTemplateSystem> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("system_code", systemCode);
+        queryWrapper.eq("template_id", templateId);
+        ApprovalTemplateSystem templateSystem = templateSystemService.getOne(queryWrapper);
+        if (templateSystem == null) {
+            return CommonResult.failed("查不到这个模板, 请联系管理员!");
+        }
+        Long id = templateSystem.getId();
+        templateSystemService.removeById(id);
+        return CommonResult.success("解绑成功!");
+    }
+
+    /**
+     * 查询系统已配置绑定的模板
+     *
+     * @param systemCode 系统编码
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 14:22
+     */
+    @Override
+    public CommonResult listOfSystem(String systemCode) {
+        List<TemplateListVO> list = Lists.newArrayList();
+
+        QueryWrapper<ApprovalTemplateSystem> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("system_code", systemCode);
+        List<ApprovalTemplateSystem> templateSystemList = templateSystemService.list(queryWrapper);
+        if (CollectionUtil.isNotEmpty(templateSystemList)) {
+            List<String> templateIds = templateSystemList.stream().map(ApprovalTemplateSystem::getTemplateId)
+                    .distinct().collect(Collectors.toList());
+            QueryWrapper<ApprovalTemplate> templateQueryWrapper = new QueryWrapper<>();
+            templateQueryWrapper.eq("is_deleted", false);
+            templateQueryWrapper.in("template_id", templateIds);
+            List<ApprovalTemplate> approvalTemplates = this.list(templateQueryWrapper);
+
+            convertToListVO(list, approvalTemplates);
+        }
+        return CommonResult.success(list);
+    }
+
+    /**
+     * 查询模板列表
+     *
+     * @param templateQueryDTO 筛选条件
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 14:43
+     */
+    @Override
+    public CommonResult list(TemplateQueryDTO templateQueryDTO) {
+        List<TemplateListVO> list = Lists.newArrayList();
+
+        String templateId = templateQueryDTO.getTemplateId();
+        Boolean isEnable = templateQueryDTO.getIsEnable();
+        String templateName = templateQueryDTO.getTemplateName();
+        QueryWrapper<ApprovalTemplate> templateQueryWrapper = new QueryWrapper<>();
+        templateQueryWrapper.eq("is_deleted", false);
+        templateQueryWrapper.eq(isEnable != null, "is_enable", isEnable);
+        templateQueryWrapper.eq(StrUtil.isNotEmpty(templateId), "template_id", templateId);
+        templateQueryWrapper.like(StrUtil.isNotEmpty(templateName), "template_name", templateName);
+        List<ApprovalTemplate> templateList = this.list(templateQueryWrapper);
+        convertToListVO(list, templateList);
+        return CommonResult.success(list);
+    }
+
     /*********************************** 私有方法 *************************************/
 
+    private void convertToListVO(List<TemplateListVO> list, List<ApprovalTemplate> approvalTemplates) {
+        if (CollectionUtil.isNotEmpty(approvalTemplates)) {
+            for (ApprovalTemplate template : approvalTemplates) {
+                TemplateListVO templateListVO = new TemplateListVO();
+                String templateId = template.getTemplateId();
+                String templateName = StrUtil.isEmpty(template.getTemplateName()) ? StrUtil.EMPTY : template.getTemplateName();
+                String description = StrUtil.isEmpty(template.getDescription()) ? StrUtil.EMPTY : template.getDescription();
+                Boolean isEnable = template.getIsEnable();
+                String patternImage = StrUtil.isEmpty(template.getPatternImage()) ? StrUtil.EMPTY : template.getPatternImage();
+
+                templateListVO.setTemplateId(templateId);
+                templateListVO.setTemplateName(templateName);
+                templateListVO.setDescription(description);
+                templateListVO.setIsEnable(isEnable);
+                templateListVO.setPatternImage(patternImage);
+                list.add(templateListVO);
+            }
+        }
+    }
     /**
      * 构建模板请求参数
      * @description
@@ -352,21 +500,6 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
             }
         }
         return contents;
-    }
-
-    /**
-     * 根据模板id查询模板
-     * @description
-     * @author Caixiaowei
-     * @param templateId: string 模板id
-     * @updateTime 2020/7/29 14:06
-     * @return ApprovalTemplate
-     */
-    @Override
-    public ApprovalTemplate getByTemplateId(String templateId) {
-        QueryWrapper<ApprovalTemplate> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("template_id", templateId);
-        return this.getOne(queryWrapper);
     }
 
     /**

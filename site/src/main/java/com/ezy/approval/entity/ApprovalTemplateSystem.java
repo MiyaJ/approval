@@ -42,5 +42,10 @@ public class ApprovalTemplateSystem implements Serializable {
      */
     private String callbackUrl;
 
+    /**
+     * 企微联系人userid
+     */
+    private String qwContactPerson;
+
 
 }

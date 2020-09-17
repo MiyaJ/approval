@@ -40,9 +40,15 @@ public class ApprovalHandler {
     @Autowired
     private ICommonService commonService;
     @Autowired
-    private IApprovalTemplateSystemService approvalTemplateSystemService;
-
-
+    private NoticeHandler noticeHandler;
+    /**
+     * 消费处理审批mq 消息
+     *
+     * @param
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/16 11:10
+     */
     public void handle(ApprovalStatuChangeEvent approvalStatuChangeEvent) {
         ApprovalInfo approvalInfo = approvalStatuChangeEvent.getApprovalInfo();
 
@@ -80,51 +86,13 @@ public class ApprovalHandler {
             // 通过或者驳回, 回调通知调用方
             if (spStatus.equals(ApprovalStatusEnum.APPROVED.getStatus())
             || spStatus.equals(ApprovalStatusEnum.DISMISSED.getStatus())) {
-                this.approvalResultCallback(spNo);
+                noticeHandler.approvalResultCallback(spNo);
             }
         }
     }
 
 
-    /**
-     * 审批结果回调通知调用方
-     *
-     * @param spNo 审批单编号
-     * @return void
-     * @author Caixiaowei
-     * @updateTime 2020/9/14 15:04
-     */
-    public void approvalResultCallback(String spNo) {
-        String callbackUrl = StrUtil.EMPTY;
-        Integer status = null;
 
-        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("sp_no", spNo);
-        ApprovalApply apply = approvalApplyService.getOne(queryWrapper);
-        if (apply != null) {
-            String templateId = apply.getTemplateId();
-            String systemCode = apply.getSystemCode();
-            status = apply.getStatus();
-
-            QueryWrapper<ApprovalTemplateSystem> wrapper = new QueryWrapper<>();
-            wrapper.eq("system_code", systemCode);
-            wrapper.eq("template_id", templateId);
-            ApprovalTemplateSystem approvalTemplateSystem = approvalTemplateSystemService.getOne(wrapper);
-            if (approvalTemplateSystem != null) {
-                callbackUrl = approvalTemplateSystem.getCallbackUrl();
-            }
-        }
-
-        if (StrUtil.isNotEmpty(callbackUrl)) {
-            try {
-                Map<String, String> params = Maps.newHashMap();
-                params.put("status", String.valueOf(status));
-                OkHttpClientUtil.doGet(callbackUrl, null, params);
-            } catch (Exception e) {
-                log.error("审批结果回调通知调用方 错误, 审批单号: {}", spNo);
-            }
-        }
-    }
 
     /**
      * 处理审批单基本信息

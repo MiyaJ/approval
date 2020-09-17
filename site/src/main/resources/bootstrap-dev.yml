@@ -33,3 +33,8 @@ approval:
 logging:
   level:
     com.ezy.approval.mapper: debug
+admin:
+  qw-userid: cxw0615
+
+qywx:
+  msg-agentid: 1000002
