@@ -89,7 +89,7 @@ public class NoticeHandler {
 
                 apply.setAck(doGet);
                 approvalApplyService.updateById(apply);
-
+                // TODO: 2020/9/18 回调通知响应是否约定一致
                 CommonResult commonResult = JSONObject.parseObject(doGet, CommonResult.class);
                 if (commonResult == null || commonResult.getCode() != ResultCode.SUCCESS.getCode()) {
                     // 回调失败, 企微通知对应系统联系人
@@ -111,6 +111,59 @@ public class NoticeHandler {
                 }
             } catch (Exception e) {
                 log.error("审批结果回调通知调用方 错误, 审批单号: {}, 异常:{}", spNo, e);
+            }
+        }
+    }
+
+    /**
+     * 消费失败消息通知
+     *
+     * @param
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/18 13:26
+     */
+    public void consumerFail(String spNo) {
+        String qwContactPerson = StrUtil.EMPTY;
+
+        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("sp_no", spNo);
+        ApprovalApply apply = approvalApplyService.getOne(queryWrapper);
+        if (apply != null) {
+            String templateId = apply.getTemplateId();
+            String systemCode = apply.getSystemCode();
+
+            QueryWrapper<ApprovalTemplateSystem> wrapper = new QueryWrapper<>();
+            wrapper.eq("system_code", systemCode);
+            wrapper.eq("template_id", templateId);
+            ApprovalTemplateSystem approvalTemplateSystem = approvalTemplateSystemService.getOne(wrapper);
+            if (approvalTemplateSystem != null) {
+                qwContactPerson = approvalTemplateSystem.getQwContactPerson();
+            }
+        } else {
+            return;
+        }
+
+        if (StrUtil.isNotEmpty(qwContactPerson)) {
+            try {
+                // 企微通知对应系统联系人
+                TextMsg textMsg = new TextMsg();
+                textMsg.setTouser(qwContactPerson);
+                textMsg.setToparty(StringUtils.EMPTY);
+                textMsg.setTotag(StringUtils.EMPTY);
+                textMsg.setMsgtype(MsgTypeEnum.TEXT.getValue());
+                textMsg.setAgentid(MESSAGE_AGENT_ID);
+                String content = "单据编号: " + spNo + "\n"
+                        + "审批情况: MQ消费失败";
+                textMsg.setText(new TextMsg.TextBean(content));
+                textMsg.setSafe(0);
+                textMsg.setEnable_id_trans(0);
+                textMsg.setEnable_duplicate_check(0);
+                textMsg.setDuplicate_check_interval(1800);
+
+                MsgVO msgVO = this.messageService.sendTextMsg(textMsg);
+            } catch (Exception e) {
+                log.error("消费失败消息通知 错误, 审批单号: {}, 异常:{}", spNo, e);
             }
         }
     }

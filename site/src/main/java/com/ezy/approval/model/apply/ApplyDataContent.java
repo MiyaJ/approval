@@ -34,6 +34,11 @@ public class ApplyDataContent implements Serializable {
     private String id;
 
     /**
+     * 是否必填: 0否; 1是
+     */
+    private Integer require;
+
+    /**
      * 控件标题
      */
     private List<TextProperty> title;

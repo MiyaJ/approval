@@ -2,7 +2,6 @@ package com.ezy.approval.controller;
 
 
 import com.ezy.approval.model.template.ApprovalTemplateAddDTO;
-import com.ezy.approval.model.template.TemplateDetailVO;
 import com.ezy.approval.model.template.TemplateQueryDTO;
 import com.ezy.approval.service.IApprovalTemplateService;
 import com.ezy.common.model.CommonResult;
@@ -102,6 +101,19 @@ public class ApprovalTemplateController {
     @GetMapping("/list")
     public CommonResult list(TemplateQueryDTO templateQueryDTO) {
         return templateService.list(templateQueryDTO);
+    }
+
+    /**
+     * 启用/禁用审批模板
+     *
+     * @param approvalTemplateAddDTO
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/18 10:41
+     */
+    @PostMapping("/enable")
+    public CommonResult enable(@RequestBody ApprovalTemplateAddDTO approvalTemplateAddDTO) {
+        return templateService.enable(approvalTemplateAddDTO);
     }
 }
 

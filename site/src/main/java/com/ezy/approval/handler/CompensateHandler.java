@@ -129,6 +129,7 @@ public class CompensateHandler {
         QueryWrapper<RabbitMessage> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("type", RabbitMessage.MESSAGE_TYPE_APPROVAL);
         queryWrapper.eq("is_send", false);
+        queryWrapper.eq("is_consumed", false);
         queryWrapper.eq("is_deleted", false);
         List<RabbitMessage> list = rabbitMessageService.list(queryWrapper);
         if (CollectionUtil.isNotEmpty(list)) {
@@ -137,7 +138,10 @@ public class CompensateHandler {
                 log.info("compensateApprovalRestart------->spNos: {}", spNos.size());
                 for (String spNo : spNos) {
                     this.compensateApprovalDetail(spNo);
+
                 }
+                // todo 更新消息状态为: 未发送, 已消费
+
             }
         }
         log.info("compensateApprovalRestart------->end--->");

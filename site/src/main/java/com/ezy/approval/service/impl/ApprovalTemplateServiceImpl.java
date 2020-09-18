@@ -66,6 +66,8 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         String systemCode = approvalTemplateAddDTO.getSystemCode();
         String callbackUrl = approvalTemplateAddDTO.getCallbackUrl();
         String patternImage = approvalTemplateAddDTO.getPatternImage();
+        String description = approvalTemplateAddDTO.getDescription();
+        Boolean isEnable = approvalTemplateAddDTO.getIsEnable() == null ? true : approvalTemplateAddDTO.getIsEnable();
 
         // 验证是否已存在
         QueryWrapper<ApprovalTemplate> queryWrapper = new QueryWrapper<>();
@@ -101,11 +103,11 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         template.setIsDeleted(0);
         template.setContent(JSONObject.toJSONString(templateContent));
         template.setPatternImage(patternImage);
-        template.setIsEnable(true);
+        template.setIsEnable(isEnable);
         // TODO: 2020/7/27 模板出入参待完善
         template.setRequestParam(requestParam);
         template.setResponseParam("");
-        template.setDescription("");
+        template.setDescription(description);
         // TODO: 2020/7/27 创建人/更新人 待完善
         template.setCreateTime(LocalDateTime.now());
         template.setUpdateTime(LocalDateTime.now());
@@ -297,6 +299,29 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         return CommonResult.success(list);
     }
 
+    /**
+     * 启用/禁用审批模板
+     *
+     * @param approvalTemplateAddDTO@return
+     * @author Caixiaowei
+     * @updateTime 2020/9/18 10:41
+     */
+    @Override
+    public CommonResult enable(ApprovalTemplateAddDTO approvalTemplateAddDTO) {
+        String templateId = approvalTemplateAddDTO.getTemplateId();
+        Boolean isEnable = approvalTemplateAddDTO.getIsEnable();
+        if (StrUtil.isEmpty(templateId) || isEnable == null) {
+            return CommonResult.failed("参数为空!");
+        }
+        ApprovalTemplate byTemplateId = getByTemplateId(templateId);
+        if (byTemplateId == null) {
+            return CommonResult.failed("模板不存在, 请联系管理员!");
+        }
+        ApprovalTemplate approvalTemplate = byTemplateId.setIsEnable(isEnable);
+        this.updateById(approvalTemplate);
+        return CommonResult.success("操作成功!");
+    }
+
     /*********************************** 私有方法 *************************************/
 
     private void convertToListVO(List<TemplateListVO> list, List<ApprovalTemplate> approvalTemplates) {
@@ -393,6 +418,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 // 控件属性
                 String control = property.getString("control");
                 String id = property.getString("id");
+                Integer require = property.getInteger("require");
                 List<TextProperty> title = JSONArray.parseArray(property.getString("title"), TextProperty.class);
                 JSONObject value = new JSONObject();
 
@@ -400,6 +426,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                         .control(control)
                         .id(id)
                         .title(title)
+                        .require(require)
                         .build();
                 // 根据控件类型来组装 value
                 if (control.equalsIgnoreCase(ApprovalControlEnum.TEXT.getControl())
@@ -519,10 +546,6 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         }
         Integer isDeleted = template.getIsDeleted();
         if (isDeleted == 1) {
-            return "模板已删除, 请联系审批管理";
-        }
-        Boolean isEnable = template.getIsEnable();
-        if (!isEnable) {
             return "模板已删除, 请联系审批管理";
         }
         return errMsg;

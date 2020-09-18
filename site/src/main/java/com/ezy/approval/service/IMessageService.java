@@ -5,6 +5,7 @@ import com.ezy.approval.model.message.*;
 import com.ezy.approval.model.message.personal.ImageMsg;
 import com.ezy.approval.model.message.personal.NewsMsg;
 import com.ezy.approval.model.message.personal.TextMsg;
+import com.ezy.common.model.CommonResult;
 
 /**
  * 消息推送接口
@@ -100,4 +101,14 @@ public interface IMessageService {
      * @updateTime 2020/9/15 11:37
      */
     void sendGroupChat(JSONObject msg);
+
+    /**
+     * 发送企微消息
+     *
+     * @param 
+     * @return 
+     * @author Caixiaowei
+     * @updateTime 2020/9/18 14:23
+     */
+    CommonResult test(String to, String content);
 }

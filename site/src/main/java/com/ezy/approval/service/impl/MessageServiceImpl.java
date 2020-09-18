@@ -13,6 +13,8 @@ import com.ezy.approval.service.IMessageService;
 import com.ezy.approval.service.RedisService;
 import com.ezy.approval.utils.OkHttpClientUtil;
 import com.ezy.common.constants.RedisConstans;
+import com.ezy.common.enums.MsgTypeEnum;
+import com.ezy.common.model.CommonResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,8 @@ public class MessageServiceImpl extends WxWorkServiceImpl implements IMessageSer
 
     @Value("${qywx.msg-corpsecret}")
     private String MESSAGE_SECRET;
+    @Value("${qywx.msg-agentid:1000002}")
+    private int MESSAGE_AGENT_ID;
 
     @Autowired
     private RedisService redisService;
@@ -200,5 +204,34 @@ public class MessageServiceImpl extends WxWorkServiceImpl implements IMessageSer
     @Override
     public void sendGroupChat(JSONObject msg) {
 
+    }
+
+    /**
+     * 发送企微消息
+     *
+     * @param to
+     * @param content
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/18 14:23
+     */
+    @Override
+    public CommonResult test(String to, String content) {
+        TextMsg textMsg = new TextMsg();
+        textMsg.setTouser(to);
+        textMsg.setToparty(StringUtils.EMPTY);
+        textMsg.setTotag(StringUtils.EMPTY);
+        textMsg.setMsgtype(MsgTypeEnum.TEXT.getValue());
+        textMsg.setAgentid(MESSAGE_AGENT_ID);
+        textMsg.setText(new TextMsg.TextBean(content));
+        textMsg.setSafe(0);
+        textMsg.setEnable_id_trans(0);
+        textMsg.setEnable_duplicate_check(0);
+        textMsg.setDuplicate_check_interval(1800);
+
+        this.sendTextMsg(textMsg);
+
+
+        return CommonResult.success("sucess");
     }
 }

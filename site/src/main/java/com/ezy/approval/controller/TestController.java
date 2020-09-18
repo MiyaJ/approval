@@ -2,9 +2,11 @@ package com.ezy.approval.controller;
 
 import com.ezy.approval.handler.NoticeHandler;
 import com.ezy.approval.service.IApprovalTaskService;
+import com.ezy.approval.service.IMessageService;
 import com.ezy.common.model.CommonResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,6 +26,8 @@ public class TestController {
     private IApprovalTaskService approvalTaskService;
     @Autowired
     private NoticeHandler noticeHandler;
+    @Autowired
+    private IMessageService messageService;
 
     @GetMapping("/compensateApproval")
     public CommonResult compensateApproval(String spNo) {
@@ -45,5 +49,18 @@ public class TestController {
             return CommonResult.failed();
         }
         return CommonResult.success("测试-审批结果回调通知调用方!");
+    }
+
+    /**
+     * 发送消息
+     *
+     * @param
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/18 14:22
+     */
+    @GetMapping("/sendMsg")
+    public CommonResult sendMsg(String to, String content) {
+        return messageService.test(to, content);
     }
 }

@@ -2,7 +2,6 @@ package com.ezy.approval.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -14,11 +13,12 @@ import com.ezy.approval.model.apply.ApprovalDetailVO;
 import com.ezy.approval.model.apply.SpNotifyerVO;
 import com.ezy.approval.model.sys.EmpInfo;
 import com.ezy.approval.service.*;
+import com.ezy.approval.utils.DateUtil;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.ezy.common.model.CommonResult;
-import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -73,12 +73,16 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
                 .eq("system_code", systemCode);
         ApprovalTemplateSystem one = templateSystemService.getOne(queryWrapper);
         if (one == null) {
-            return CommonResult.failed("没有注册这个模板, 请联系管理员.");
+            return CommonResult.failed("没有绑定这个模板, 请联系管理员.");
+        }
+
+        ApprovalTemplate template = templateService.getByTemplateId(templateId);
+        Boolean isEnable = template.getIsEnable();
+        if (!isEnable) {
+            return CommonResult.failed("模板已停用, 请联系管理员!");
         }
 
         ApprovalApply apply = new ApprovalApply();
-        ApprovalTemplate template = templateService.getByTemplateId(templateId);
-
         apply.setTemplateId(templateId);
         apply.setSystemCode(systemCode);
         apply.setSpName(template.getTemplateName());
@@ -90,7 +94,7 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         apply.setWxUserId(xiaowei.getQwUserId());
         // TODO: 2020/7/29 转换审批数据
         apply.setApplyData(JSONObject.toJSONString(approvalApplyDTO.getApplyData()));
-
+        apply.setApplyTime(DateUtil.localDateTimeToSecond(LocalDateTime.now()));
         apply.setCreateTime(LocalDateTime.now());
         this.save(apply);
 
@@ -100,9 +104,9 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         String errmsg = event.getString("errmsg");
         String spNo = event.getString("sp_no");
         if (errcode != 0) {
-            apply.setErrorReason(errmsg);
             // 申请失败
             apply.setStatus(ApprovalStatusEnum.FAIL.getStatus());
+            apply.setErrorReason(errmsg);
             apply.setSpNo(spNo);
             this.updateById(apply);
 
@@ -135,10 +139,10 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         if (apply == null ) {
             return CommonResult.failed("审批单据不存在, 请检查审批单号");
         }
-        String applySystemCode = apply.getSystemCode();
-        if (!systemCode.equals(applySystemCode)) {
-            return CommonResult.failed("无权限查看此审批单据");
-        }
+//        String applySystemCode = apply.getSystemCode();
+//        if (StrUtil.isEmpty(systemCode) || !systemCode.equals(applySystemCode)) {
+//            return CommonResult.failed("无权限查看此审批单据");
+//        }
 
         // 查询审批单据抄送人
         List<SpNotifyerVO> spNotifyerVOS = getSpNotifyerBySpNo(spNo);
@@ -167,11 +171,12 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
      * @updateTime 2020/8/3 9:33
      */
     @Override
+    @GetMapping("/listBySystemCode")
     public CommonResult listBySystemCode(String systemCode, String startDate, String endDate) {
         QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("system_code", systemCode);
-        queryWrapper.ge(StrUtil.isNotEmpty(startDate), "create_date", startDate);
-        queryWrapper.le(StrUtil.isNotEmpty(endDate), "create_date", endDate);
+        queryWrapper.ge(StrUtil.isNotEmpty(startDate), "create_time", startDate);
+        queryWrapper.le(StrUtil.isNotEmpty(endDate), "create_time", endDate);
         List<ApprovalApply> approvalApplyList = this.list(queryWrapper);
         List<ApprovalDetailVO> list = approvalApplyList.stream().map(a -> {
             ApprovalDetailVO vo = new ApprovalDetailVO();

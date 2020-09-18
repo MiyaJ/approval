@@ -40,4 +40,14 @@ public class ApprovalTemplateAddDTO implements Serializable {
      * 回调通知企微userid
      */
     private String qwContactPerson;
+
+    /**
+     * 模板描述
+     */
+    private String description;
+
+    /**
+     * 启用状态
+     */
+    private Boolean isEnable;
 }

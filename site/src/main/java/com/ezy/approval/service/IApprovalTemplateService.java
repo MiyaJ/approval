@@ -87,4 +87,14 @@ public interface IApprovalTemplateService extends IService<ApprovalTemplate> {
      * @updateTime 2020/9/16 14:44
      */
     CommonResult list(TemplateQueryDTO templateQueryDTO);
+
+    /**
+     * 启用/禁用审批模板
+     *
+     * @param 
+     * @return 
+     * @author Caixiaowei
+     * @updateTime 2020/9/18 10:41
+     */
+    CommonResult enable(ApprovalTemplateAddDTO approvalTemplateAddDTO);
 }
