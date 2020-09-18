@@ -108,7 +108,7 @@ public interface IMessageService {
      * @param 
      * @return 
      * @author Caixiaowei
-     * @updateTime 2020/9/18 14:23
+     * @updateTime 2020/9/18 16:31
      */
     CommonResult test(String to, String content);
 }

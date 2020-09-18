@@ -62,9 +62,6 @@ public class ApprovalApplyController {
      */
     @GetMapping("/listBySystemCode")
     public CommonResult listBySystemCode(String systemCode, String startDate, String endDate) {
-        if (StrUtil.isEmpty(systemCode)) {
-            return CommonResult.failed("参数异常, 请稍后再试!");
-        }
         return approvalApplyService.listBySystemCode(systemCode, startDate, endDate);
     }
 }
