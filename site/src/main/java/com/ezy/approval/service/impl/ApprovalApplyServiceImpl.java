@@ -46,6 +46,8 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
     @Autowired
     private IApprovalSpRecordService spRecordService;
     @Autowired
+    private IApprovalSpCommentService spCommentService;
+    @Autowired
     private IApprovalSpRecordDetailService spRecordDetailService;
     @Autowired
     private ICommonService commonService;
@@ -150,14 +152,20 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         // 查询审批单据流程
         List<ApprovalSpRecord> spRecords = getSpRecordBySpNo(spNo);
 
+        // 查询审批备注
+        List<ApprovalSpComment> spComments = getSpCommentsBySpNo(spNo);
+
         ApprovalDetailVO detailVO = new ApprovalDetailVO();
         BeanUtil.copyProperties(apply, detailVO);
 
         detailVO.setSpRecords(spRecords);
         detailVO.setNotifyers(spNotifyerVOS);
+        detailVO.setSpComments(spComments);
 
         return CommonResult.success(detailVO);
     }
+
+
 
     /**
      * 查询系统应用的审批单
@@ -232,6 +240,23 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
             }
         }
 
+        return list;
+    }
+
+    /**
+     * 根据审批单号查询备注信息
+     *
+     * @param spNo 审批单编号
+     * @return List<ApprovalSpComment>
+     * @author Caixiaowei
+     * @updateTime 2020/9/21 14:14
+     */
+    private List<ApprovalSpComment> getSpCommentsBySpNo(String spNo) {
+        QueryWrapper<ApprovalSpComment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("sp_no", spNo);
+        queryWrapper.eq("is_deleted", false);
+        queryWrapper.orderByAsc("comment_time");
+        List<ApprovalSpComment> list = spCommentService.list(queryWrapper);
         return list;
     }
 }

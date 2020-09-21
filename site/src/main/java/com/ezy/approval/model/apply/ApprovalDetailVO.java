@@ -1,5 +1,6 @@
 package com.ezy.approval.model.apply;
 
+import com.ezy.approval.entity.ApprovalSpComment;
 import com.ezy.approval.entity.ApprovalSpRecord;
 import lombok.Data;
 
@@ -87,5 +88,8 @@ public class ApprovalDetailVO implements Serializable {
      */
     private List<ApprovalSpRecord> spRecords;
 
-
+    /**
+     * 审批备注
+     */
+    private List<ApprovalSpComment> spComments;
 }
