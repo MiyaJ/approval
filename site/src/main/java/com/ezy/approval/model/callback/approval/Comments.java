@@ -26,7 +26,7 @@ public class Comments implements Serializable {
      * 备注提交时间
      */
     @XStreamAlias("CommentTime")
-    private Integer commentTime;
+    private Long commentTime;
 
     /**
      * 备注文本内容

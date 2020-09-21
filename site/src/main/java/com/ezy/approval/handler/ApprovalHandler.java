@@ -12,12 +12,15 @@ import com.ezy.common.enums.ApprovalStatusEnum;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
+import org.assertj.core.util.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Caixiaowei
@@ -38,9 +41,12 @@ public class ApprovalHandler {
     @Autowired
     private IApprovalSpRecordDetailService approvalSpRecordDetailService;
     @Autowired
+    private IApprovalSpCommentService approvalSpCommentService;
+    @Autowired
     private ICommonService commonService;
     @Autowired
     private NoticeHandler noticeHandler;
+
     /**
      * 消费处理审批mq 消息
      *
@@ -82,6 +88,8 @@ public class ApprovalHandler {
             processNotifyer(spNo, notifyers);
             // 处理审批流程节点
             processSpRecord(spNo, spRecords);
+            // 处理备注
+            processSpComment(spNo, comments);
 
             // 通过或者驳回, 回调通知调用方
             if (spStatus.equals(ApprovalStatusEnum.APPROVED.getStatus())
@@ -271,6 +279,61 @@ public class ApprovalHandler {
             }
             approvalSpNotifyerService.saveOrUpdateBatch(spNotifyers);
         }
+    }
+
+    /**
+     * 处理审批备注
+     *
+     * @param spNo 审批单编号
+     * @param comments 备注信息
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/21 11:12
+     */
+    public void processSpComment(String spNo, List<Comments> comments) {
+        List<ApprovalSpComment> insertList = Lists.newArrayList();
+
+        QueryWrapper<ApprovalSpComment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("sp_no", spNo);
+        queryWrapper.eq("is_deleted", false);
+        List<ApprovalSpComment> list = approvalSpCommentService.list(queryWrapper);
+
+        Set<String> dbCommentIds = Sets.newHashSet();
+        if (CollectionUtil.isNotEmpty(list)) {
+            dbCommentIds = list.stream().map(ApprovalSpComment::getCommentId).distinct().collect(Collectors.toSet());
+
+        }
+
+        if (CollectionUtil.isNotEmpty(comments)) {
+            Set<String> newCommentIds = comments.stream().map(Comments::getCommentId).distinct().collect(Collectors.toSet());
+
+            for (Comments comment : comments) {
+                String commentId = comment.getCommentId();
+
+                if (!dbCommentIds.contains(commentId)) {
+                    ApprovalSpComment spComment = new ApprovalSpComment();
+
+                    spComment.setCommentId(comment.getCommentId());
+                    spComment.setSpNo(spNo);
+                    spComment.setCommentTime(comment.getCommentTime());
+                    spComment.setContent(comment.getCommentContent());
+                    spComment.setIsDeleted(false);
+                    spComment.setUserid(comment.getCommentUserInfo().getUserId());
+
+                    insertList.add(spComment);
+                }
+            }
+            if (CollectionUtil.isNotEmpty(list)) {
+                for (ApprovalSpComment spComment : list) {
+                    if (!newCommentIds.contains(spComment.getCommentId())) {
+                        spComment.setIsDeleted(true);
+                        insertList.add(spComment);
+                    }
+                }
+            }
+            approvalSpCommentService.saveOrUpdateBatch(insertList);
+        }
+        
     }
 
 }
