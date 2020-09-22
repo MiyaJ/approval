@@ -5,17 +5,18 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ezy.approval.entity.*;
 import com.ezy.approval.mapper.ApprovalApplyMapper;
-import com.ezy.approval.model.apply.ApprovalApplyDTO;
-import com.ezy.approval.model.apply.ApprovalDetailVO;
-import com.ezy.approval.model.apply.SpNotifyerVO;
+import com.ezy.approval.model.apply.*;
 import com.ezy.approval.model.sys.EmpInfo;
 import com.ezy.approval.service.*;
 import com.ezy.approval.utils.DateUtil;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.ezy.common.model.CommonResult;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
  * @since 2020-07-27
  */
 @Service
+@Slf4j
 public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, ApprovalApply> implements IApprovalApplyService {
 
     @Autowired
@@ -51,6 +53,8 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
     private IApprovalSpRecordDetailService spRecordDetailService;
     @Autowired
     private ICommonService commonService;
+    @Autowired
+    private ApprovalApplyMapper approvalApplyMapper;
     
 
     /**
@@ -73,10 +77,11 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         QueryWrapper<ApprovalTemplateSystem> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("template_id", templateId)
                 .eq("system_code", systemCode);
-        ApprovalTemplateSystem one = templateSystemService.getOne(queryWrapper);
-        if (one == null) {
+        ApprovalTemplateSystem templateSystem = templateSystemService.getOne(queryWrapper);
+        if (templateSystem == null) {
             return CommonResult.failed("没有绑定这个模板, 请联系管理员.");
         }
+        String callbackUrl = templateSystem.getCallbackUrl();
 
         ApprovalTemplate template = templateService.getByTemplateId(templateId);
         Boolean isEnable = template.getIsEnable();
@@ -90,10 +95,12 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         apply.setSpName(template.getTemplateName());
         apply.setStatus(ApprovalStatusEnum.IN_REVIEW.getStatus());
         apply.setUseTemplateApprover(useTemplateApprover);
+        apply.setCallbackUrl(callbackUrl);
         // TODO: 2020/7/29 申请人员工信息
-        EmpInfo xiaowei = commonService.getEmpByUserId("xiaowei");
-        apply.setEmpId(xiaowei.getEmpId());
-        apply.setWxUserId(xiaowei.getQwUserId());
+        EmpInfo empInfo = commonService.getEmpByUserId("xiaowei");
+        apply.setEmpId(empInfo.getEmpId());
+        apply.setEmpName(empInfo.getEmpName());
+        apply.setWxUserId(empInfo.getQwUserId());
         // TODO: 2020/7/29 转换审批数据
         apply.setApplyData(JSONObject.toJSONString(approvalApplyDTO.getApplyData()));
         apply.setApplyTime(DateUtil.localDateTimeToSecond(LocalDateTime.now()));
@@ -134,9 +141,7 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
      */
     @Override
     public CommonResult detail(String systemCode, String spNo) {
-        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("sp_no", spNo);
-        ApprovalApply apply = this.getOne(queryWrapper);
+        ApprovalApply apply = getApprovalApply(spNo);
 
         if (apply == null ) {
             return CommonResult.failed("审批单据不存在, 请检查审批单号");
@@ -165,7 +170,32 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         return CommonResult.success(detailVO);
     }
 
+    @Override
+    public ApprovalApply getApprovalApply(String spNo) {
+        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("sp_no", spNo);
+        return this.getOne(queryWrapper);
+    }
 
+    /**
+     * 异常审批单列表
+     *
+     * @param approvalQueryDTO ApprovalQueryDTO 查询参数
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/22 16:36
+     */
+    @Override
+    public IPage<ApprovalErrorListVO> errorList(ApprovalQueryDTO approvalQueryDTO) {
+        IPage<ApprovalErrorListVO> page = new Page<>();
+        page.setPages(approvalQueryDTO.getPageNum());
+        page.setSize(approvalQueryDTO.getPageSize());
+
+        approvalQueryDTO.setCallbackStatus(ApprovalApply.CALL_BACK_FAIL);
+        page = approvalApplyMapper.pageErrorList(page, approvalQueryDTO);
+        log.info("data --->{}", JSONObject.toJSONString(page));
+        return page;
+    }
 
     /**
      * 查询系统应用的审批单

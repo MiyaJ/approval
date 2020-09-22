@@ -1,7 +1,11 @@
 package com.ezy.approval.mapper;
 
-import com.ezy.approval.entity.ApprovalApply;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.ezy.approval.entity.ApprovalApply;
+import com.ezy.approval.model.apply.ApprovalErrorListVO;
+import com.ezy.approval.model.apply.ApprovalQueryDTO;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
@@ -13,4 +17,5 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface ApprovalApplyMapper extends BaseMapper<ApprovalApply> {
 
+    IPage<ApprovalErrorListVO> pageErrorList(IPage<ApprovalErrorListVO> queryPage, @Param("approvalQuery") ApprovalQueryDTO approvalQuery);
 }

@@ -14,4 +14,7 @@ public class CommonConstan {
 
     public static final String SUPPORTED_FILE_FORMAT = "txt,pdf,doc,xls";
 
+    public static final String ZH_CN = "zh_CN";
+
+
 }

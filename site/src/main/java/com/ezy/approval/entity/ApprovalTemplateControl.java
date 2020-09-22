@@ -33,7 +33,7 @@ public class ApprovalTemplateControl implements Serializable {
     private String templateId;
 
     /**
-     * 控件类型：Text-文本；Textarea-多行文本；Number-数字；Money-金额；Date-日期/日期+时间；Selector-单选/多选；Contact-成员/部门；Tips-说明文字；File-附件；Table-明细；Attendance-假勤控件；Vacation-请假控件
+     * 控件：Text-文本；Textarea-多行文本；Number-数字；Money-金额；Date-日期/日期+时间；Selector-单选/多选；Contact-成员/部门；Tips-说明文字；File-附件；Table-明细；Attendance-假勤控件；Vacation-请假控件
      */
     private String control;
 
@@ -48,6 +48,11 @@ public class ApprovalTemplateControl implements Serializable {
     private String title;
 
     /**
+     * 类型
+     */
+    private String type;
+
+    /**
      * 控件说明
      */
     private String placeholder;
@@ -55,7 +60,7 @@ public class ApprovalTemplateControl implements Serializable {
     /**
      * 是否必填：1-必填；0-非必填
      */
-    private Integer require;
+    private Integer required;
 
     /**
      * 是否参与打印：1-不参与打印；0-参与打印

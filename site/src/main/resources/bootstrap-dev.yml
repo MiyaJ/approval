@@ -30,9 +30,9 @@ approval:
   time:
     out: 3600
 
-logging:
-  level:
-    com.ezy.approval.mapper: debug
+#logging:
+#  level:
+#    com.ezy.approval.mapper: debug
 admin:
   qw-userid: cxw0615
 

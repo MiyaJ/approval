@@ -147,6 +147,7 @@ public class ApprovalHandler {
             apply.setWxUserId(userId);
             apply.setWxPartyId(party);
             apply.setEmpId(empId);
+            apply.setEmpName(empName);
             apply.setStatus(spStatus);
             apply.setApplyTime(applyTime);
             apply.setWxPartyId(party);
@@ -157,6 +158,7 @@ public class ApprovalHandler {
             apply.setWxUserId(userId);
             apply.setWxPartyId(party);
             apply.setEmpId(empId);
+            apply.setEmpName(empName);
             apply.setStatus(spStatus);
             apply.setApplyTime(applyTime);
             apply.setWxPartyId(party);

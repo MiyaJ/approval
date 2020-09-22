@@ -76,4 +76,42 @@ public class Consumer {
         }
 
     }
+
+//    @RabbitListener(queues = RabbitConfig.QUEUE_CONTACT_UC)
+//    public void contact(Message message, Channel channel) throws IOException {
+//        String messageId = message.getMessageProperties().getMessageId();
+//        if (StrUtil.isEmpty(messageId)) {
+//            return;
+//        }
+//        try {
+//            RabbitMessage rabbitMessage = rabbitMessageService.getById(Long.valueOf(messageId));
+//            String json = new String(message.getBody(), "UTF-8");
+//            log.info("contact 消费消息: {}", json);
+//            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
+//        } catch (Exception e) {
+//            log.error("handleMessage 消费失败,message: {}, error: {}", new String(message.getBody(), "UTF-8"), e);
+//            // 处理消息失败，将消息重新放回队列
+//            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
+//        }
+//
+//    }
+//
+//    @RabbitListener(queues = RabbitConfig.QUEUE_CONTACT_JARVIS)
+//    public void contactJarvis(Message message, Channel channel) throws IOException {
+//        String messageId = message.getMessageProperties().getMessageId();
+//        if (StrUtil.isEmpty(messageId)) {
+//            return;
+//        }
+//        try {
+//            RabbitMessage rabbitMessage = rabbitMessageService.getById(Long.valueOf(messageId));
+//            String json = new String(message.getBody(), "UTF-8");
+//            log.info("contactJarvis 消费消息: {}", json);
+//            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
+//        } catch (Exception e) {
+//            log.error("handleMessage 消费失败,message: {}, error: {}", new String(message.getBody(), "UTF-8"), e);
+//            // 处理消息失败，将消息重新放回队列
+//            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
+//        }
+//
+//    }
 }

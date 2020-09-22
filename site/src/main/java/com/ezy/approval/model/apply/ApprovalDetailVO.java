@@ -49,9 +49,14 @@ public class ApprovalDetailVO implements Serializable {
     private Long applyTime;
 
     /**
-     * 申请人员工id 申请人员工id
+     * 申请人员工id
      */
     private Long empId;
+
+    /**
+     * 申请人员工姓名
+     */
+    private String empName;
 
     /**
      * 申请人微信用户id 申请人userid

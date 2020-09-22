@@ -26,6 +26,9 @@ public class ApprovalApply implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    public static Integer CALL_BACK_FAIL = 0;
+    public static Integer CALL_BACK_SUCCESS = 1;
+
     /**
      * 主键
      */
@@ -68,9 +71,14 @@ public class ApprovalApply implements Serializable {
     private Long applyTime;
 
     /**
-     * 申请人员工id 申请人员工id
+     * 申请人员工id
      */
     private Long empId;
+
+    /**
+     * 申请人员工姓名
+     */
+    private String empName;
 
     /**
      * 申请人微信用户id 申请人userid
@@ -95,12 +103,17 @@ public class ApprovalApply implements Serializable {
     /**
      * 调用方回调结果
      */
-    private String ack;
+    private Integer callbackStatus;
 
     /**
      * 调用方回调url
      */
     private String callbackUrl;
+
+    /**
+     * 调用方回调结果描述
+     */
+    private String callbackResult;
 
     /**
      * 创建人

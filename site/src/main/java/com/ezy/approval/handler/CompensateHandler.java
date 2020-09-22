@@ -81,6 +81,7 @@ public class CompensateHandler {
         Long applyTime = approvalDetail.getLong("apply_time");
         // 审批申请数据
         JSONObject applyData = approvalDetail.getJSONObject("apply_data");
+        log.info("applyData--->{}", applyData.toString());
 
         // 审批申请人
         Applyer applyer = approvalDetail.getObject("applyer", Applyer.class);
@@ -102,6 +103,7 @@ public class CompensateHandler {
         apply.setStatus(spStatus);
         apply.setApplyTime(applyTime);
         apply.setEmpId(empInfo.getEmpId());
+        apply.setEmpName(empInfo.getEmpName());
         apply.setWxUserId(userId);
         apply.setWxPartyId(party);
         apply.setApplyData(applyData.toString());

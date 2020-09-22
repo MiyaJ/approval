@@ -1,6 +1,5 @@
 package com.ezy.approval.handler;
 
-import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -18,7 +17,6 @@ import com.ezy.common.model.CommonResult;
 import com.ezy.common.model.ResultCode;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +37,8 @@ public class NoticeHandler {
 
     @Value("${qywx.msg-agentid:1000002}")
     private int MESSAGE_AGENT_ID;
+    @Value("${admin.qw-userid}")
+    private String ADMIN_QW_USER_ID;
 
     @Autowired
     private IApprovalApplyService approvalApplyService;
@@ -57,58 +57,54 @@ public class NoticeHandler {
      */
     @Async
     public void approvalResultCallback(String spNo) {
-        String callbackUrl = StrUtil.EMPTY;
-        String qwContactPerson = StrUtil.EMPTY;
-        Integer status = null;
-
-        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("sp_no", spNo);
-        ApprovalApply apply = approvalApplyService.getOne(queryWrapper);
-        if (apply != null) {
-            String templateId = apply.getTemplateId();
-            String systemCode = apply.getSystemCode();
-            status = apply.getStatus();
-
-            QueryWrapper<ApprovalTemplateSystem> wrapper = new QueryWrapper<>();
-            wrapper.eq("system_code", systemCode);
-            wrapper.eq("template_id", templateId);
-            ApprovalTemplateSystem approvalTemplateSystem = approvalTemplateSystemService.getOne(wrapper);
-            if (approvalTemplateSystem != null) {
-                callbackUrl = approvalTemplateSystem.getCallbackUrl();
-                qwContactPerson = approvalTemplateSystem.getQwContactPerson();
-            }
-        } else {
+        ApprovalApply apply = approvalApplyService.getApprovalApply(spNo);
+        if (apply == null) {
             return;
         }
+        Integer status = apply.getStatus();
+        String templateId = apply.getTemplateId();
+        String systemCode = apply.getSystemCode();
 
-        if (StrUtil.isNotEmpty(callbackUrl) && StrUtil.isNotEmpty(qwContactPerson)) {
+        // 审批流程结束, 通知对应企微联系人
+        QueryWrapper<ApprovalTemplateSystem> wrapper = new QueryWrapper<>();
+        wrapper.eq("system_code", systemCode);
+        wrapper.eq("template_id", templateId);
+        ApprovalTemplateSystem approvalTemplateSystem = approvalTemplateSystemService.getOne(wrapper);
+        if (approvalTemplateSystem != null) {
+            String qwContactPerson = approvalTemplateSystem.getQwContactPerson();
+            if (StrUtil.isNotEmpty(qwContactPerson)) {
+                String content = "单据编号: " + spNo + "\n"
+                        + "审批结果: " + ApprovalStatusEnum.getDesc(status);
+                this.notifyText(qwContactPerson, content);
+            }
+        }
+
+        // 回调通知调用方
+        String callbackUrl = apply.getCallbackUrl();
+        if (StrUtil.isNotEmpty(callbackUrl)) {
             try {
                 Map<String, String> params = Maps.newHashMap();
                 params.put("status", String.valueOf(status));
                 String doGet = OkHttpClientUtil.doGet(callbackUrl, null, params);
 
-                apply.setAck(doGet);
-                approvalApplyService.updateById(apply);
-                // TODO: 2020/9/18 回调通知响应是否约定一致
-                CommonResult commonResult = JSONObject.parseObject(doGet, CommonResult.class);
-                if (commonResult == null || commonResult.getCode() != ResultCode.SUCCESS.getCode()) {
-                    // 回调失败, 企微通知对应系统联系人
-                    TextMsg textMsg = new TextMsg();
-                    textMsg.setTouser(qwContactPerson);
-                    textMsg.setToparty(StringUtils.EMPTY);
-                    textMsg.setTotag(StringUtils.EMPTY);
-                    textMsg.setMsgtype(MsgTypeEnum.TEXT.getValue());
-                    textMsg.setAgentid(MESSAGE_AGENT_ID);
-                    String content = "单据编号: " + spNo + "\n"
-                            + "审批结果: " + ApprovalStatusEnum.getDesc(status);
-                    textMsg.setText(new TextMsg.TextBean(content));
-                    textMsg.setSafe(0);
-                    textMsg.setEnable_id_trans(0);
-                    textMsg.setEnable_duplicate_check(0);
-                    textMsg.setDuplicate_check_interval(1800);
 
-                    MsgVO msgVO = this.messageService.sendTextMsg(textMsg);
+
+                CommonResult commonResult = JSONObject.parseObject(doGet, CommonResult.class);
+                if (commonResult != null && commonResult.getCode() == ResultCode.SUCCESS.getCode()) {
+                    apply.setCallbackStatus(ApprovalApply.CALL_BACK_SUCCESS);
+                } else {
+                    apply.setCallbackStatus(ApprovalApply.CALL_BACK_FAIL);
+
+                    // 回调失败, 企微通知审批管理员
+                    String content = "单据编号: " + spNo + "\n"
+                            + "审批结果: " + ApprovalStatusEnum.getDesc(status) + "\n"
+                            + "回调结果: 失败 \n"
+                            + "失败原因: " + commonResult.getMessage();
+                    this.notifyText(ADMIN_QW_USER_ID, content);
                 }
+                // 更新回调结果到审批单据
+                apply.setCallbackResult(doGet);
+                approvalApplyService.updateById(apply);
             } catch (Exception e) {
                 log.error("审批结果回调通知调用方 错误, 审批单号: {}, 异常:{}", spNo, e);
             }
@@ -126,9 +122,7 @@ public class NoticeHandler {
     public void consumerFail(String spNo) {
         String qwContactPerson = StrUtil.EMPTY;
 
-        QueryWrapper<ApprovalApply> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("sp_no", spNo);
-        ApprovalApply apply = approvalApplyService.getOne(queryWrapper);
+        ApprovalApply apply = approvalApplyService.getApprovalApply(spNo);
         if (apply != null) {
             String templateId = apply.getTemplateId();
             String systemCode = apply.getSystemCode();
@@ -147,24 +141,43 @@ public class NoticeHandler {
         if (StrUtil.isNotEmpty(qwContactPerson)) {
             try {
                 // 企微通知对应系统联系人
-                TextMsg textMsg = new TextMsg();
-                textMsg.setTouser(qwContactPerson);
-                textMsg.setToparty(StringUtils.EMPTY);
-                textMsg.setTotag(StringUtils.EMPTY);
-                textMsg.setMsgtype(MsgTypeEnum.TEXT.getValue());
-                textMsg.setAgentid(MESSAGE_AGENT_ID);
                 String content = "单据编号: " + spNo + "\n"
                         + "审批情况: MQ消费失败";
-                textMsg.setText(new TextMsg.TextBean(content));
-                textMsg.setSafe(0);
-                textMsg.setEnable_id_trans(0);
-                textMsg.setEnable_duplicate_check(0);
-                textMsg.setDuplicate_check_interval(1800);
-
-                MsgVO msgVO = this.messageService.sendTextMsg(textMsg);
+                this.notifyText(qwContactPerson, content);
             } catch (Exception e) {
                 log.error("消费失败消息通知 错误, 审批单号: {}, 异常:{}", spNo, e);
             }
+        }
+    }
+
+    /**
+     * 异常通知管理员
+     *
+     * @param toUser 通知目标
+     * @param content 通知内容
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/21 15:47
+     */
+    public void notifyText(String toUser, String content) {
+        String errmsg = StrUtil.EMPTY;
+        try {
+            TextMsg textMsg = new TextMsg();
+            textMsg.setTouser(toUser);
+            textMsg.setToparty(StringUtils.EMPTY);
+            textMsg.setTotag(StringUtils.EMPTY);
+            textMsg.setMsgtype(MsgTypeEnum.TEXT.getValue());
+            textMsg.setAgentid(MESSAGE_AGENT_ID);
+            textMsg.setText(new TextMsg.TextBean(content));
+            textMsg.setSafe(0);
+            textMsg.setEnable_id_trans(0);
+            textMsg.setEnable_duplicate_check(0);
+            textMsg.setDuplicate_check_interval(1800);
+
+            MsgVO msgVO = this.messageService.sendTextMsg(textMsg);
+            errmsg = msgVO.getErrmsg();
+        } catch (Exception e) {
+            log.error("消息通知异常, 通知对象: {}, 通知内容:{}, 异常: {}", toUser, content, errmsg);
         }
     }
 }

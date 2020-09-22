@@ -1,9 +1,14 @@
 package com.ezy.approval.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ezy.approval.entity.ApprovalApply;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ezy.approval.model.apply.ApprovalApplyDTO;
+import com.ezy.approval.model.apply.ApprovalErrorListVO;
+import com.ezy.approval.model.apply.ApprovalQueryDTO;
 import com.ezy.common.model.CommonResult;
+
+import java.util.List;
 
 /**
  * <p>
@@ -47,4 +52,24 @@ public interface IApprovalApplyService extends IService<ApprovalApply> {
      * @return
      */
     CommonResult listBySystemCode(String systemCode, String startDate, String endDate);
+
+    /**
+     * 根据单号查询审批单据
+     *
+     * @param spNo 审批单编号
+     * @return ApprovalApply
+     * @author Caixiaowei
+     * @updateTime 2020/9/22 10:55
+     */
+    ApprovalApply getApprovalApply(String spNo);
+
+    /**
+     * 异常审批单列表
+     *
+     * @param approvalQueryDTO ApprovalQueryDTO 查询参数
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/22 16:36
+     */
+    IPage<ApprovalErrorListVO> errorList(ApprovalQueryDTO approvalQueryDTO);
 }

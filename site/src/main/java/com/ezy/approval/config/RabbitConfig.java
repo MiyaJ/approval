@@ -21,24 +21,13 @@ public class RabbitConfig {
 
     public static final String EXCHANGE_APPROVAL = "EXCHANGE_APPROVAL";
     public static final String EXCHANGE_CONTACT = "EXCHANGE_CONTACT";
-    public static final String EXCHANGE_HELLO = "EXCHANGE_HELLO";
-
-    public static final String TYPE_APPROVAL="APPROVAL";
-    public static final String TYPE_CONTACT="CONTACT";
-    public static final String TYPE_HELLO="HELLO";
 
     public static final String QUEUE_APPROVAL="QUEUE_APPROVAL";
-    public static final String QUEUE_CONTACT="QUEUE_CONTACT";
-    public static final String QUEUE_HELLO="QUEUE_HELLO";
+    public static final String QUEUE_CONTACT_UC="QUEUE_CONTACT_UC";
+    public static final String QUEUE_CONTACT_JARVIS="QUEUE_CONTACT_JARVIS";
 
     public static final String ROUTING_KEY_APPROVAL="ROUTING_KEY_APPROVAL";
     public static final String ROUTING_KEY_CONTACT="ROUTING_KEY_CONTACT";
-    public static final String ROUTING_KEY_HELLO="ROUTING_KEY_HELLO";
-
-    @Bean
-    public Queue helloQueue() {
-        return new Queue(RabbitConfig.QUEUE_HELLO);
-    }
 
     /**
      * 审批队列
@@ -55,7 +44,7 @@ public class RabbitConfig {
 
 
     /**
-     * 通讯录队列
+     * 通讯录-uc 队列
      * @description
      * @author Caixiaowei
      * @param
@@ -63,12 +52,24 @@ public class RabbitConfig {
      * @return Queue
      */
     @Bean
-    public Queue contactQueue() {
-        return new Queue(RabbitConfig.QUEUE_CONTACT);
+    public Queue contactUcQueue() {
+        return new Queue(RabbitConfig.QUEUE_CONTACT_UC);
+    }
+    /**
+     * 通讯录-jarvis 队列
+     * @description
+     * @author Caixiaowei
+     * @param
+     * @updateTime 2020/8/6 9:52
+     * @return Queue
+     */
+    @Bean
+    public Queue contactJarvisQueue() {
+        return new Queue(RabbitConfig.QUEUE_CONTACT_JARVIS);
     }
 
     /**
-     * 创建topic交换机
+     * 创建topic交换机-审批
      * @return
      */
     @Bean
@@ -77,7 +78,7 @@ public class RabbitConfig {
     }
 
     /**
-     * 创建topic交换机
+     * 创建topic交换机-通讯录
      * @return
      */
     @Bean
@@ -92,11 +93,16 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Binding bindingContact() {
+    public Binding bindingContactUc() {
         //绑定一个队列 to: 绑定到哪个交换机上面 with：绑定的路由建（routingKey）
-        return BindingBuilder.bind(contactQueue()).to(contactTopicExchange()).with(RabbitConfig.ROUTING_KEY_CONTACT);
+        return BindingBuilder.bind(contactUcQueue()).to(contactTopicExchange()).with(RabbitConfig.ROUTING_KEY_CONTACT);
     }
 
+    @Bean
+    public Binding bindingContactJarvis() {
+        //绑定一个队列 to: 绑定到哪个交换机上面 with：绑定的路由建（routingKey）
+        return BindingBuilder.bind(contactJarvisQueue()).to(contactTopicExchange()).with(RabbitConfig.ROUTING_KEY_CONTACT);
+    }
 
     @Bean
     public RabbitTemplate createRabbitTemplate(ConnectionFactory connectionFactory){
