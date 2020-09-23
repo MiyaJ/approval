@@ -27,5 +27,12 @@ public class RedisTest {
         String spNo = "202009230001";
         redisService.incr(RedisConstans.APPROVAL_CALLBACK_RETRY + StrUtil.COLON + spNo, 1L);
         System.out.println(redisService.get(RedisConstans.APPROVAL_CALLBACK_RETRY + StrUtil.COLON + spNo));
+
+    }
+
+    @Test
+    public void test_del() {
+        String spNo = "202009230003";
+        redisService.delete(RedisConstans.APPROVAL_CALLBACK_RETRY + StrUtil.COLON + spNo);
     }
 }

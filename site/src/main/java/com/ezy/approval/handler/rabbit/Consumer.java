@@ -5,19 +5,19 @@ import com.alibaba.fastjson.JSONObject;
 import com.ezy.approval.config.RabbitConfig;
 import com.ezy.approval.entity.RabbitMessage;
 import com.ezy.approval.handler.ApprovalHandler;
+import com.ezy.approval.handler.NoticeHandler;
 import com.ezy.approval.model.callback.approval.ApprovalStatuChangeEvent;
 import com.ezy.approval.service.IRabbitMessageService;
 import com.ezy.approval.service.RedisService;
+import com.ezy.common.constants.RedisConstans;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
-import org.springframework.amqp.rabbit.annotation.RabbitHandler;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Caixiaowei
@@ -35,10 +35,16 @@ public class Consumer {
     private IRabbitMessageService rabbitMessageService;
     @Autowired
     private RedisService redisService;
+    @Autowired
+    private NoticeHandler noticeHandler;
+
+    private Long retryConsumeCount = 3L;
 
     @RabbitListener(queues = RabbitConfig.QUEUE_APPROVAL)
-    public void handleMessage(Message message, Channel channel) throws IOException {
+    public void handleMessage(Message message, Channel channel) throws IOException, InterruptedException {
         String messageId = message.getMessageProperties().getMessageId();
+        RabbitMessage rabbitMessage = rabbitMessageService.getById(Long.valueOf(messageId));
+        String spNo = rabbitMessage.getSpNo();
         /**
          * 防止重复消费，可以根据传过来的唯一ID先判断缓存数据中是否有数据
          * 1、有数据则不消费，直接应答处理
@@ -49,7 +55,6 @@ public class Consumer {
             return;
         }
         try {
-            RabbitMessage rabbitMessage = rabbitMessageService.getById(Long.valueOf(messageId));
             Boolean isConsumed = rabbitMessage.getIsConsumed();
             String json = new String(message.getBody(), "UTF-8");
             log.info("handleMessage 消费消息: {}", json);
@@ -64,15 +69,29 @@ public class Consumer {
 
                 //手动应答
                 channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
+                // 清除重试消费缓存
+                redisService.delete(RedisConstans.APPROVAL_COMSUME_RETRY + StrUtil.COLON + messageId);
             } else {
                 channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
             }
 
         } catch (Exception e) {
             log.error("handleMessage 消费失败,message: {}, error: {}", new String(message.getBody(), "UTF-8"), e);
-            // 处理消息失败，将消息重新放回队列
-            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
-//                channel.basicNack(message.getMessageProperties().getDeliveryTag(), false,true);
+            /**
+             * 处理消息失败，将消息重新放回队列
+             * 重试消费失败3次后, 手动ack, 通知管理员, 并记录改单据
+             */
+            Object retryCount = redisService.get(RedisConstans.APPROVAL_COMSUME_RETRY + StrUtil.COLON + messageId);
+            if (Long.valueOf(retryCount.toString()) > retryConsumeCount) {
+                channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
+                // 通知管理员
+                noticeHandler.retryConsume(spNo, messageId);
+            } else {
+                Thread.sleep(3000L);
+                channel.basicNack(message.getMessageProperties().getDeliveryTag(), false,true);
+                redisService.incr(RedisConstans.APPROVAL_COMSUME_RETRY + StrUtil.COLON + messageId, 1L);
+            }
+
         }
 
     }

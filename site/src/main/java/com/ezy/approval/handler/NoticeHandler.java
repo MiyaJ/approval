@@ -151,7 +151,7 @@ public class NoticeHandler {
     }
 
     /**
-     * 异常通知管理员
+     * 发送文本消息
      *
      * @param toUser 通知目标
      * @param content 通知内容
@@ -181,11 +181,37 @@ public class NoticeHandler {
         }
     }
 
+    /**
+     * 尝试会调通知3次失败, 通知管理员
+     *
+     * @param spNo 审批单据
+     * @param status 审批状态
+     * @param message 回调返回消息
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 13:49
+     */
     public void retryCallback(String spNo, Integer status, String message) {
         String content = "单据编号: " + spNo + "\n"
                 + "审批结果: " + ApprovalStatusEnum.getDesc(status) + "\n"
                 + "回调结果: 失败 \n"
                 + "失败原因: " + message;
+        this.notifyText(ADMIN_QW_USER_ID, content);
+    }
+
+    /**
+     * 尝试消费3次失败, 通知管理员
+     *
+     * @param spNo 审批单据
+     * @param spNo 消息id
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 13:48
+     */
+    public void retryConsume(String spNo, String messageId) {
+        String content = "单据编号: " + spNo + "\n"
+                + "消息id: " + messageId + "\n"
+                + "消费失败";
         this.notifyText(ADMIN_QW_USER_ID, content);
     }
 }

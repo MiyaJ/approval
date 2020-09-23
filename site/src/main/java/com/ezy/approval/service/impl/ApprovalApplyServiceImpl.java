@@ -264,6 +264,8 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
                 approvalApply.setCallbackResult(doGet);
 
                 this.updateById(approvalApply);
+                // 清除重试次数缓存
+                redisService.delete(RedisConstans.APPROVAL_CALLBACK_RETRY + StrUtil.COLON + spNo);
                 return CommonResult.success("重试发送回调通知成功!");
             } else {
                 /**

@@ -32,6 +32,11 @@ public class RedisConstans {
     public static final String APPROVAL_CALLBACK_RETRY= "approval:callback:retry";
 
     /**
+     * 审批MQ 消费失败重试
+     */
+    public static final String APPROVAL_COMSUME_RETRY= "approval:consume:retry";
+
+    /**
      * 审批失败次数
      */
     public static final String APPROVAL_CONSUMER_FAIL_COUNT_PREFIX = "approval:consumer:fail:count:";
