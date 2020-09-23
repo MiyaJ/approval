@@ -40,6 +40,15 @@ public class Consumer {
 
     private Long retryConsumeCount = 3L;
 
+    /**
+     * 审批MQ 消费
+     *
+     * @param message 消息体
+     * @param channel 渠道
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 14:26
+     */
     @RabbitListener(queues = RabbitConfig.QUEUE_APPROVAL)
     public void handleMessage(Message message, Channel channel) throws IOException, InterruptedException {
         String messageId = message.getMessageProperties().getMessageId();
@@ -79,8 +88,9 @@ public class Consumer {
             log.error("handleMessage 消费失败,message: {}, error: {}", new String(message.getBody(), "UTF-8"), e);
             /**
              * 处理消息失败，将消息重新放回队列
-             * 重试消费失败3次后, 手动ack, 通知管理员, 并记录改单据
+             * 重试消费失败3次后, 手动ack, 通知管理员, 并记录该单据
              */
+            redisService.incr(RedisConstans.APPROVAL_COMSUME_RETRY + StrUtil.COLON + messageId, 1L);
             Object retryCount = redisService.get(RedisConstans.APPROVAL_COMSUME_RETRY + StrUtil.COLON + messageId);
             if (Long.valueOf(retryCount.toString()) > retryConsumeCount) {
                 channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
@@ -89,7 +99,6 @@ public class Consumer {
             } else {
                 Thread.sleep(3000L);
                 channel.basicNack(message.getMessageProperties().getDeliveryTag(), false,true);
-                redisService.incr(RedisConstans.APPROVAL_COMSUME_RETRY + StrUtil.COLON + messageId, 1L);
             }
 
         }
@@ -105,7 +114,7 @@ public class Consumer {
 //        try {
 //            RabbitMessage rabbitMessage = rabbitMessageService.getById(Long.valueOf(messageId));
 //            String json = new String(message.getBody(), "UTF-8");
-//            log.info("contact 消费消息: {}", json);
+//            log.info("QUEUE_CONTACT_UC 消费消息: {}", json);
 //            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
 //        } catch (Exception e) {
 //            log.error("handleMessage 消费失败,message: {}, error: {}", new String(message.getBody(), "UTF-8"), e);
@@ -124,7 +133,7 @@ public class Consumer {
 //        try {
 //            RabbitMessage rabbitMessage = rabbitMessageService.getById(Long.valueOf(messageId));
 //            String json = new String(message.getBody(), "UTF-8");
-//            log.info("contactJarvis 消费消息: {}", json);
+//            log.info("QUEUE_CONTACT_JARVIS 消费消息: {}", json);
 //            channel.basicAck(message.getMessageProperties().getDeliveryTag(),false);
 //        } catch (Exception e) {
 //            log.error("handleMessage 消费失败,message: {}, error: {}", new String(message.getBody(), "UTF-8"), e);
