@@ -9,20 +9,28 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ezy.approval.entity.*;
+import com.ezy.approval.handler.ApprovalHandler;
+import com.ezy.approval.handler.NoticeHandler;
 import com.ezy.approval.mapper.ApprovalApplyMapper;
 import com.ezy.approval.model.apply.*;
 import com.ezy.approval.model.sys.EmpInfo;
 import com.ezy.approval.service.*;
 import com.ezy.approval.utils.DateUtil;
+import com.ezy.approval.utils.OkHttpClientUtil;
+import com.ezy.common.constants.RedisConstans;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.ezy.common.model.CommonResult;
+import com.ezy.common.model.ResultCode;
+import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -55,6 +63,13 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
     private ICommonService commonService;
     @Autowired
     private ApprovalApplyMapper approvalApplyMapper;
+    @Autowired
+    private RedisService redisService;
+    @Autowired
+    private NoticeHandler noticeHandler;
+
+    @Value("${approval.time.out:3600}")
+    private Long APPROVAL_TIME_OUT;
     
 
     /**
@@ -178,23 +193,95 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
     }
 
     /**
-     * 异常审批单列表
+     * 分页查询审批单据列表
      *
-     * @param approvalQueryDTO ApprovalQueryDTO 查询参数
-     * @return
+     * @param approvalQueryDTO 查询条件
+     * @return IPage<ApprovalErrorListVO>
      * @author Caixiaowei
-     * @updateTime 2020/9/22 16:36
+     * @updateTime 2020/9/23 9:48
      */
     @Override
-    public IPage<ApprovalErrorListVO> errorList(ApprovalQueryDTO approvalQueryDTO) {
-        IPage<ApprovalErrorListVO> page = new Page<>();
-        page.setPages(approvalQueryDTO.getPageNum());
-        page.setSize(approvalQueryDTO.getPageSize());
-
-        approvalQueryDTO.setCallbackStatus(ApprovalApply.CALL_BACK_FAIL);
-        page = approvalApplyMapper.pageErrorList(page, approvalQueryDTO);
+    public IPage<ApprovalListVO> list(ApprovalQueryDTO approvalQueryDTO) {
+        IPage<ApprovalListVO> page = new Page<>();
+        page.setPages(approvalQueryDTO.getPageNum() == null ? 1L : approvalQueryDTO.getPageNum());
+        page.setSize(approvalQueryDTO.getPageSize() == null ? 10L : approvalQueryDTO.getPageSize());
+        page = approvalApplyMapper.list(page, approvalQueryDTO);
         log.info("data --->{}", JSONObject.toJSONString(page));
         return page;
+    }
+
+    /**
+     * 查号是审批单据列表
+     *
+     * @param approvalQueryDTO 查询条件
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 10:12
+     */
+    @Override
+    public IPage<ApprovalListVO> timeOutList(ApprovalQueryDTO approvalQueryDTO) {
+        // 超过1h未审批的单据, 状态为审批中的单据
+        Long nowTimestamp = DateUtil.localDateTimeToSecond(LocalDateTime.now());
+        Long timeOut = nowTimestamp - APPROVAL_TIME_OUT;
+        approvalQueryDTO.setApplyTime(timeOut);
+        approvalQueryDTO.setStatus(ApprovalStatusEnum.IN_REVIEW.getStatus());
+
+        return this.list(approvalQueryDTO);
+    }
+
+    /**
+     * 重试发送回调通知
+     *
+     * @param spNo 审批单据编号
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 10:34
+     */
+    @Override
+    public CommonResult retryCallback(String spNo) {
+        ApprovalApply approvalApply = this.getApprovalApply(spNo);
+        if (approvalApply == null) {
+            return CommonResult.failed("找不到这个审批单据");
+        }
+
+        Integer status = approvalApply.getStatus();
+        String callbackUrl = approvalApply.getCallbackUrl();
+
+        Object retryCount = redisService.get(RedisConstans.APPROVAL_CALLBACK_RETRY + StrUtil.COLON + spNo);
+        if (Long.valueOf(retryCount.toString()) >= 3L) {
+            noticeHandler.retryCallback(spNo, status, "重新通知已达3次");
+            return CommonResult.failed("重新通知已达3次! 已通知审批管理员!");
+        }
+
+        Map<String, String> params = Maps.newHashMap();
+        params.put("spNo", spNo);
+        params.put("status", String.valueOf(status));
+        try {
+            String doGet = OkHttpClientUtil.doGet(callbackUrl, null, params);
+            CommonResult commonResult = JSONObject.parseObject(doGet, CommonResult.class);
+            if (commonResult != null && commonResult.getCode() == ResultCode.SUCCESS.getCode()) {
+                approvalApply.setCallbackStatus(ApprovalApply.CALL_BACK_SUCCESS);
+                approvalApply.setCallbackResult(doGet);
+
+                this.updateById(approvalApply);
+                return CommonResult.success("重试发送回调通知成功!");
+            } else {
+                /**
+                 * 回调通知失败, 记录失败重试次数
+                 * 超过3次则通知管理员
+                 */
+                redisService.incr(RedisConstans.APPROVAL_CALLBACK_RETRY + StrUtil.COLON + spNo, 1L);
+                retryCount = redisService.get(RedisConstans.APPROVAL_CALLBACK_RETRY + StrUtil.COLON + spNo);
+                if (Long.valueOf(retryCount.toString()) > 3L) {
+                    noticeHandler.retryCallback(spNo, status, commonResult.getMessage());
+                    return CommonResult.failed("重试发送回调通知失败! 已通知审批管理员!");
+                }
+            }
+        } catch (Exception e) {
+            return CommonResult.failed("重试发送回调通知失败!");
+        }
+
+        return CommonResult.failed("重试发送回调通知失败!");
     }
 
     /**

@@ -84,9 +84,9 @@ public class NoticeHandler {
         if (StrUtil.isNotEmpty(callbackUrl)) {
             try {
                 Map<String, String> params = Maps.newHashMap();
+                params.put("spNo", spNo);
                 params.put("status", String.valueOf(status));
                 String doGet = OkHttpClientUtil.doGet(callbackUrl, null, params);
-
 
 
                 CommonResult commonResult = JSONObject.parseObject(doGet, CommonResult.class);
@@ -179,5 +179,13 @@ public class NoticeHandler {
         } catch (Exception e) {
             log.error("消息通知异常, 通知对象: {}, 通知内容:{}, 异常: {}", toUser, content, errmsg);
         }
+    }
+
+    public void retryCallback(String spNo, Integer status, String message) {
+        String content = "单据编号: " + spNo + "\n"
+                + "审批结果: " + ApprovalStatusEnum.getDesc(status) + "\n"
+                + "回调结果: 失败 \n"
+                + "失败原因: " + message;
+        this.notifyText(ADMIN_QW_USER_ID, content);
     }
 }

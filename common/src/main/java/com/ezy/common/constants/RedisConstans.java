@@ -27,6 +27,11 @@ public class RedisConstans {
     public static final String APPROVAL_TIME_OUT_NO = "approval:timeOut:no";
 
     /**
+     * 审批回调通知重试
+     */
+    public static final String APPROVAL_CALLBACK_RETRY= "approval:callback:retry";
+
+    /**
      * 审批失败次数
      */
     public static final String APPROVAL_CONSUMER_FAIL_COUNT_PREFIX = "approval:consumer:fail:count:";

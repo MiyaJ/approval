@@ -1,12 +1,14 @@
 package com.ezy.approval.handler;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ezy.approval.entity.ApprovalApply;
 import com.ezy.approval.entity.RabbitMessage;
 import com.ezy.approval.model.callback.approval.Applyer;
+import com.ezy.approval.model.callback.approval.Comments;
 import com.ezy.approval.model.callback.approval.Notifyer;
 import com.ezy.approval.model.callback.approval.SpRecord;
 import com.ezy.approval.model.sys.EmpInfo;
@@ -54,11 +56,11 @@ public class CompensateHandler {
      * @updateTime 2020/9/7 14:50
      */
     public void compensateApprovalDetail(String spNo) {
+        if (StrUtil.isEmpty(spNo)) {
+            return;
+        }
         log.info("补偿审批单据 : {}", spNo);
         JSONObject approvalDetail = approvalService.getApprovalDetail(spNo);
-
-        // 审批备注
-        JSONArray comments = approvalDetail.getJSONArray("comments");
 
         processApproval(spNo, approvalDetail);
 
@@ -71,6 +73,11 @@ public class CompensateHandler {
         JSONArray notifyers = approvalDetail.getJSONArray("notifyer");
         List<Notifyer> notifyerList = JSONObject.parseArray(notifyers.toJSONString(), Notifyer.class);
         approvalHandler.processNotifyer(spNo, notifyerList);
+
+        // 审批备注
+        JSONArray comments = approvalDetail.getJSONArray("comments");
+        List<Comments> commentsList = JSONObject.parseArray(comments.toJSONString(), Comments.class);
+        approvalHandler.processSpComment(spNo, commentsList);
     }
 
     private void processApproval(String spNo, JSONObject approvalDetail) {

@@ -11,7 +11,7 @@ import java.io.Serializable;
  * @createTime 2020/9/22$ 15:31$
  */
 @Data
-public class ApprovalErrorListVO implements Serializable {
+public class ApprovalListVO implements Serializable {
     private static final long serialVersionUID = 7353938760049269205L;
 
     /**

@@ -49,4 +49,9 @@ public class ApprovalQueryDTO extends BaseQueryDTO implements Serializable {
      * 回调状态: 0 失败; 1成功
      */
     private Integer callbackStatus;
+
+    /**
+     * 申请时间
+     */
+    private Long applyTime;
 }

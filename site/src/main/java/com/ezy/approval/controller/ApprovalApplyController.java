@@ -1,8 +1,9 @@
 package com.ezy.approval.controller;
 
 
-import cn.hutool.core.util.StrUtil;
+import com.ezy.approval.entity.ApprovalApply;
 import com.ezy.approval.model.apply.ApprovalApplyDTO;
+import com.ezy.approval.model.apply.ApprovalQueryDTO;
 import com.ezy.approval.service.IApprovalApplyService;
 import com.ezy.common.model.CommonResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,4 +65,58 @@ public class ApprovalApplyController {
     public CommonResult listBySystemCode(String systemCode, String startDate, String endDate) {
         return approvalApplyService.listBySystemCode(systemCode, startDate, endDate);
     }
+
+    /**
+     * 审批单据列表
+     *
+     * @param
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 9:46
+     */
+    @GetMapping("/list")
+    public CommonResult list(ApprovalQueryDTO queryDTO) {
+        return CommonResult.success(approvalApplyService.list(queryDTO));
+    }
+
+    /**
+     * 异常审批单列表
+     *
+     * @param
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 9:46
+     */
+    @GetMapping("/errorList")
+    public CommonResult errorList(ApprovalQueryDTO queryDTO) {
+        queryDTO.setCallbackStatus(ApprovalApply.CALL_BACK_FAIL);
+        return CommonResult.success(approvalApplyService.list(queryDTO));
+    }
+
+    /**
+     * 超时审批单列表
+     *
+     * @param
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 9:46
+     */
+    @GetMapping("/timeOutList")
+    public CommonResult timeOutList(ApprovalQueryDTO queryDTO) {
+        return CommonResult.success(approvalApplyService.timeOutList(queryDTO));
+    }
+
+    /**
+     * 重试发送回调通知
+     *
+     * @param spNo 审批单据编号
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 10:33
+     */
+    @GetMapping("/retryCallback")
+    public CommonResult retryCallback(String spNo) {
+        return approvalApplyService.retryCallback(spNo);
+    }
+
 }

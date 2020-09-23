@@ -63,7 +63,10 @@ public class ApprovalTaskServiceImpl implements IApprovalTaskService {
             queryWrapper.notIn("status", ApprovalStatusEnum.APPROVED.getStatus(), ApprovalStatusEnum.DISMISSED.getStatus());
             List<ApprovalApply> list = approvalApplyService.list(queryWrapper);
 
-            spNoList = list.stream().map(ApprovalApply::getSpNo).collect(Collectors.toList());
+            spNoList = list.stream().filter(a -> StrUtil.isNotEmpty(a.getSpNo()))
+                    .map(ApprovalApply::getSpNo)
+                    .distinct()
+                    .collect(Collectors.toList());
         } else {
             spNoList.add(spNo);
         }

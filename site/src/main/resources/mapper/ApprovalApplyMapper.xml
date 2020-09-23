@@ -24,7 +24,7 @@
         <result column="update_time" property="updateTime" />
     </resultMap>
 
-    <select id="pageErrorList" resultType="com.ezy.approval.model.apply.ApprovalErrorListVO">
+    <select id="list" resultType="com.ezy.approval.model.apply.ApprovalListVO">
         SELECT
             sp_no AS spNo,
             sp_name AS spName,

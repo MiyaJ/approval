@@ -1,14 +1,12 @@
 package com.ezy.approval.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.ezy.approval.entity.ApprovalApply;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ezy.approval.entity.ApprovalApply;
 import com.ezy.approval.model.apply.ApprovalApplyDTO;
-import com.ezy.approval.model.apply.ApprovalErrorListVO;
+import com.ezy.approval.model.apply.ApprovalListVO;
 import com.ezy.approval.model.apply.ApprovalQueryDTO;
 import com.ezy.common.model.CommonResult;
-
-import java.util.List;
 
 /**
  * <p>
@@ -63,13 +61,34 @@ public interface IApprovalApplyService extends IService<ApprovalApply> {
      */
     ApprovalApply getApprovalApply(String spNo);
 
+
     /**
-     * 异常审批单列表
+     * 分页查询审批单据列表
      *
-     * @param approvalQueryDTO ApprovalQueryDTO 查询参数
+     * @param approvalQueryDTO 查询条件
+     * @return IPage<ApprovalErrorListVO>
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 9:48
+     */
+    IPage<ApprovalListVO> list(ApprovalQueryDTO approvalQueryDTO);
+
+    /**
+     * 查号是审批单据列表
+     *
+     * @param approvalQueryDTO 查询条件
      * @return
      * @author Caixiaowei
-     * @updateTime 2020/9/22 16:36
+     * @updateTime 2020/9/23 10:12
      */
-    IPage<ApprovalErrorListVO> errorList(ApprovalQueryDTO approvalQueryDTO);
+    IPage<ApprovalListVO> timeOutList(ApprovalQueryDTO approvalQueryDTO);
+
+    /**
+     * 重试发送回调通知
+     *
+     * @param spNo 审批单据编号
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/23 10:37
+     */
+    CommonResult retryCallback(String spNo);
 }

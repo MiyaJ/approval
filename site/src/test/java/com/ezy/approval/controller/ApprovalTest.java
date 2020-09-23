@@ -21,9 +21,4 @@ public class ApprovalTest {
     private CompensateHandler compensateHandler;
 
 
-    @Test
-    public void test_compensate() {
-        String spNo = "202009070005";
-        compensateHandler.compensateApprovalDetail(spNo);
-    }
 }
