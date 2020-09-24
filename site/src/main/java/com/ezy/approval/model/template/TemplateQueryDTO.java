@@ -1,5 +1,6 @@
 package com.ezy.approval.model.template;
 
+import com.ezy.approval.model.BaseQueryDTO;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -11,7 +12,7 @@ import java.io.Serializable;
  * @createTime 2020/9/16$ 14:13$
  */
 @Data
-public class TemplateQueryDTO implements Serializable {
+public class TemplateQueryDTO extends BaseQueryDTO implements Serializable {
     private static final long serialVersionUID = -2594483985795894116L;
 
     /**
@@ -33,4 +34,9 @@ public class TemplateQueryDTO implements Serializable {
      * 是否启用
      */
     private Boolean isEnable;
+
+    /**
+     * 是否删除
+     */
+    private Boolean isDeleted;
 }

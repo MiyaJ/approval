@@ -1,10 +1,10 @@
 package com.ezy.approval.controller;
 
 
-import com.ezy.approval.entity.ApprovalApply;
 import com.ezy.approval.model.apply.ApprovalApplyDTO;
 import com.ezy.approval.model.apply.ApprovalQueryDTO;
 import com.ezy.approval.service.IApprovalApplyService;
+import com.ezy.common.enums.ApprovalCallbackStatusEnum;
 import com.ezy.common.model.CommonResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -89,7 +89,7 @@ public class ApprovalApplyController {
      */
     @GetMapping("/errorList")
     public CommonResult errorList(ApprovalQueryDTO queryDTO) {
-        queryDTO.setCallbackStatus(ApprovalApply.CALL_BACK_FAIL);
+        queryDTO.setCallbackStatus(ApprovalCallbackStatusEnum.FAIL.getStatus());
         return CommonResult.success(approvalApplyService.list(queryDTO));
     }
 

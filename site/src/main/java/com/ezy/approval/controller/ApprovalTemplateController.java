@@ -100,7 +100,7 @@ public class ApprovalTemplateController {
      */
     @GetMapping("/list")
     public CommonResult list(TemplateQueryDTO templateQueryDTO) {
-        return templateService.list(templateQueryDTO);
+        return CommonResult.success(templateService.list(templateQueryDTO));
     }
 
     /**

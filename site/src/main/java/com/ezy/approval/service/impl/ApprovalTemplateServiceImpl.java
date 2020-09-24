@@ -5,6 +5,8 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ezy.approval.entity.ApprovalTemplate;
 import com.ezy.approval.entity.ApprovalTemplateControl;
 import com.ezy.approval.entity.ApprovalTemplateSystem;
@@ -52,6 +54,8 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
     private IApprovalTemplateSystemService templateSystemService;
     @Autowired
     private IApprovalTemplateControlService templateControlService;
+    @Autowired
+    private ApprovalTemplateMapper templateMapper;
 
     /**
      * 新增审批模板
@@ -97,6 +101,12 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
 //        List<TemplateControl> templateControls = buildTemplateRequestParams(templateContent);
 //        String requestParam = JSONObject.toJSONString(templateControls);
 
+        List<ApprovalTemplateControl> templateControls = getTemplateControls(templateId);
+        if (CollectionUtil.isNotEmpty(templateControls)) {
+            List<Long> controlIds = templateControls.stream().map(ApprovalTemplateControl::getId).collect(Collectors.toList());
+            templateControlService.removeByIds(controlIds);
+        }
+
         List<ApplyDataContent> applyDataContents = buildTemplateRequestParams2(templateId, templateContent);
         String requestParam = JSONObject.toJSONString(applyDataContents);
 
@@ -128,6 +138,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         }
         return CommonResult.success("新增审批模板成功!");
     }
+
 
     /**
      * 查询审批模板详情
@@ -286,20 +297,29 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
      * @updateTime 2020/9/16 14:43
      */
     @Override
-    public CommonResult list(TemplateQueryDTO templateQueryDTO) {
-        List<TemplateListVO> list = Lists.newArrayList();
+    public IPage<TemplateListVO> list(TemplateQueryDTO templateQueryDTO) {
 
-        String templateId = templateQueryDTO.getTemplateId();
-        Boolean isEnable = templateQueryDTO.getIsEnable();
-        String templateName = templateQueryDTO.getTemplateName();
-        QueryWrapper<ApprovalTemplate> templateQueryWrapper = new QueryWrapper<>();
-        templateQueryWrapper.eq("is_deleted", false);
-        templateQueryWrapper.eq(isEnable != null, "is_enable", isEnable);
-        templateQueryWrapper.eq(StrUtil.isNotEmpty(templateId), "template_id", templateId);
-        templateQueryWrapper.like(StrUtil.isNotEmpty(templateName), "template_name", templateName);
-        List<ApprovalTemplate> templateList = this.list(templateQueryWrapper);
-        convertToListVO(list, templateList);
-        return CommonResult.success(list);
+        IPage<TemplateListVO> page = new Page<>();
+        page.setPages(templateQueryDTO.getPageNum() == null ? 1L : templateQueryDTO.getPageNum());
+        page.setSize(templateQueryDTO.getPageSize() == null ? 10L : templateQueryDTO.getPageSize());
+
+        page = templateMapper.listPage(page, templateQueryDTO);
+
+//        QueryWrapper<ApprovalTemplate> templateQueryWrapper = new QueryWrapper<>();
+//        templateQueryWrapper.eq("is_deleted", false);
+//        templateQueryWrapper.eq(isEnable != null, "is_enable", isEnable);
+//        templateQueryWrapper.eq(StrUtil.isNotEmpty(templateId), "template_id", templateId);
+//        templateQueryWrapper.like(StrUtil.isNotEmpty(templateName), "template_name", templateName);
+//        page = this.page(page, templateQueryWrapper);
+//
+//        List<ApprovalTemplate> records = page.getRecords();
+//
+////        List<ApprovalTemplate> templateList = this.list(templateQueryWrapper);
+//
+//        convertToListVO(list, records);
+//
+//        IPage<TemplateListVO>
+        return page;
     }
 
     /**
@@ -610,6 +630,20 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
             return "模板已删除, 请联系审批管理";
         }
         return errMsg;
+    }
+
+    /**
+     * 查询模板控件
+     *
+     * @param templateId 模板id
+     * @return List<ApprovalTemplateControl>
+     * @author Caixiaowei
+     * @updateTime 2020/9/24 16:22
+     */
+    private List<ApprovalTemplateControl> getTemplateControls(String templateId) {
+        QueryWrapper<ApprovalTemplateControl> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("template_id", templateId);
+        return templateControlService.list(queryWrapper);
     }
 
 }

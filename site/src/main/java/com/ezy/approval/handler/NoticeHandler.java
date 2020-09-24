@@ -11,6 +11,7 @@ import com.ezy.approval.service.IApprovalApplyService;
 import com.ezy.approval.service.IApprovalTemplateSystemService;
 import com.ezy.approval.service.IMessageService;
 import com.ezy.approval.utils.OkHttpClientUtil;
+import com.ezy.common.enums.ApprovalCallbackStatusEnum;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.ezy.common.enums.MsgTypeEnum;
 import com.ezy.common.model.CommonResult;
@@ -91,9 +92,9 @@ public class NoticeHandler {
 
                 CommonResult commonResult = JSONObject.parseObject(doGet, CommonResult.class);
                 if (commonResult != null && commonResult.getCode() == ResultCode.SUCCESS.getCode()) {
-                    apply.setCallbackStatus(ApprovalApply.CALL_BACK_SUCCESS);
+                    apply.setCallbackStatus(ApprovalCallbackStatusEnum.SUCCESS.getStatus());
                 } else {
-                    apply.setCallbackStatus(ApprovalApply.CALL_BACK_FAIL);
+                    apply.setCallbackStatus(ApprovalCallbackStatusEnum.FAIL.getStatus());
 
                     // 回调失败, 企微通知审批管理员
                     String content = "单据编号: " + spNo + "\n"

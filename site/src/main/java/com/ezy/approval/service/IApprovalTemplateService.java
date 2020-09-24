@@ -1,9 +1,11 @@
 package com.ezy.approval.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ezy.approval.entity.ApprovalTemplate;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ezy.approval.model.template.ApprovalTemplateAddDTO;
 import com.ezy.approval.model.template.TemplateDetailVO;
+import com.ezy.approval.model.template.TemplateListVO;
 import com.ezy.approval.model.template.TemplateQueryDTO;
 import com.ezy.common.model.CommonResult;
 
@@ -86,7 +88,7 @@ public interface IApprovalTemplateService extends IService<ApprovalTemplate> {
      * @author Caixiaowei
      * @updateTime 2020/9/16 14:44
      */
-    CommonResult list(TemplateQueryDTO templateQueryDTO);
+    IPage<TemplateListVO> list(TemplateQueryDTO templateQueryDTO);
 
     /**
      * 启用/禁用审批模板

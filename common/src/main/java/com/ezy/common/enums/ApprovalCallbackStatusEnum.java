@@ -12,55 +12,25 @@ import java.util.List;
  * @Description 审核状态枚举
  * @createTime 2020年07月17日 15:54:00
  */
-public enum ApprovalStatusEnum {
+public enum ApprovalCallbackStatusEnum {
 
     // 1-审批中；2-已通过；3-已驳回；4-已撤销；6-通过后撤销；7-已删除；10-已支付
 
     /**
-     * 申请失败
+     * 回调失败
      */
-    FAIL(0, "申请失败"),
+    FAIL(0, "回调失败"),
 
     /**
-     * 审批中
+     * 回调成功
      */
-    IN_REVIEW(1, "审批中"),
-
-    /**
-     * 已同意
-     */
-    APPROVED(2, "已同意"),
-
-    /**
-     * 已驳回
-     */
-    DISMISSED(3, "已驳回"),
-
-    /**
-     * 已撤销
-     */
-    REVOKED(4, "已撤销"),
-
-    /**
-     * 通过后撤销
-     */
-    APPROVED_REVOKED(6, "通过后撤销"),
-
-    /**
-     * 已删除
-     */
-    DELETED(7, "已删除"),
-
-    /**
-     * 已支付
-     */
-    PAID(10, "已支付");
+    SUCCESS(1, "回调成功");
 
     private Integer status;
 
     private String desc;
 
-    public static List<ApprovalStatusEnum> list = EnumUtils.getEnumList(ApprovalStatusEnum.class);
+    public static List<ApprovalCallbackStatusEnum> list = EnumUtils.getEnumList(ApprovalCallbackStatusEnum.class);
 
     public Integer getStatus() {
         return status;
@@ -78,21 +48,21 @@ public enum ApprovalStatusEnum {
         this.desc = desc;
     }
 
-    public static List<ApprovalStatusEnum> getList() {
+    public static List<ApprovalCallbackStatusEnum> getList() {
         return list;
     }
 
-    public static void setList(List<ApprovalStatusEnum> list) {
-        ApprovalStatusEnum.list = list;
+    public static void setList(List<ApprovalCallbackStatusEnum> list) {
+        ApprovalCallbackStatusEnum.list = list;
     }
 
-    ApprovalStatusEnum(Integer status, String desc) {
+    ApprovalCallbackStatusEnum(Integer status, String desc) {
         this.status = status;
         this.desc = desc;
     }
 
     public static String getDesc(int status) {
-        for (ApprovalStatusEnum e : list) {
+        for (ApprovalCallbackStatusEnum e : list) {
             if (e.status.intValue() == status) {
                 return e.desc;
             }
@@ -101,7 +71,7 @@ public enum ApprovalStatusEnum {
     }
 
     public static Integer getStatus(String desc){
-        for (ApprovalStatusEnum e : list) {
+        for (ApprovalCallbackStatusEnum e : list) {
             if (e.getDesc().equals(desc)){
                 return e.getStatus();
             }
@@ -115,7 +85,7 @@ public enum ApprovalStatusEnum {
      */
     public static List<IdNameVO> idNameList(){
         List<IdNameVO> list= CollUtil.newArrayList();
-        for (ApprovalStatusEnum approvalStatusEnum : ApprovalStatusEnum.values()) {
+        for (ApprovalCallbackStatusEnum approvalStatusEnum : ApprovalCallbackStatusEnum.values()) {
             IdNameVO idName = new IdNameVO();
             idName.setId(approvalStatusEnum.getStatus());
             idName.setName(approvalStatusEnum.getDesc());

@@ -26,8 +26,6 @@ public class ApprovalApply implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    public static Integer CALL_BACK_FAIL = 0;
-    public static Integer CALL_BACK_SUCCESS = 1;
 
     /**
      * 主键

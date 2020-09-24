@@ -18,6 +18,7 @@ import com.ezy.approval.service.*;
 import com.ezy.approval.utils.DateUtil;
 import com.ezy.approval.utils.OkHttpClientUtil;
 import com.ezy.common.constants.RedisConstans;
+import com.ezy.common.enums.ApprovalCallbackStatusEnum;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.ezy.common.model.CommonResult;
 import com.ezy.common.model.ResultCode;
@@ -248,6 +249,9 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         String callbackUrl = approvalApply.getCallbackUrl();
 
         Object retryCount = redisService.get(RedisConstans.APPROVAL_CALLBACK_RETRY + StrUtil.COLON + spNo);
+        if (retryCount == null) {
+            retryCount = 0L;
+        }
         if (Long.valueOf(retryCount.toString()) >= 3L) {
             noticeHandler.retryCallback(spNo, status, "重新通知已达3次");
             return CommonResult.failed("重新通知已达3次! 已通知审批管理员!");
@@ -260,7 +264,7 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
             String doGet = OkHttpClientUtil.doGet(callbackUrl, null, params);
             CommonResult commonResult = JSONObject.parseObject(doGet, CommonResult.class);
             if (commonResult != null && commonResult.getCode() == ResultCode.SUCCESS.getCode()) {
-                approvalApply.setCallbackStatus(ApprovalApply.CALL_BACK_SUCCESS);
+                approvalApply.setCallbackStatus(ApprovalCallbackStatusEnum.SUCCESS.getStatus());
                 approvalApply.setCallbackResult(doGet);
 
                 this.updateById(approvalApply);
