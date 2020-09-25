@@ -52,4 +52,9 @@ public class TemplateDetailVO implements Serializable {
      * 模板描述
      */
     private String description;
+
+    /**
+     * 是否启用
+     */
+    private Boolean isEnable;
 }

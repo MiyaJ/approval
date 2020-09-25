@@ -178,6 +178,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 .templateName(template.getTemplateName())
                 .description(template.getDescription())
                 .patternImage(template.getPatternImage())
+                .isEnable(template.getIsEnable())
                 .build();
         String requestParam = template.getRequestParam();
         List<ApplyDataContent> templateControls = JSONObject.parseArray(requestParam, ApplyDataContent.class);
