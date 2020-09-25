@@ -115,5 +115,18 @@ public class ApprovalTemplateController {
     public CommonResult enable(@RequestBody ApprovalTemplateAddDTO approvalTemplateAddDTO) {
         return templateService.enable(approvalTemplateAddDTO);
     }
+
+    /**
+     * 删除模板
+     *
+     * @param templateId 模板id
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/25 14:49
+     */
+    @PostMapping("/delete")
+    public CommonResult delete(@RequestParam("templateId") String templateId) {
+        return templateService.delete(templateId);
+    }
 }
 

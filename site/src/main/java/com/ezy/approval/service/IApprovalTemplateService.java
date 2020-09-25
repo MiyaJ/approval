@@ -99,4 +99,14 @@ public interface IApprovalTemplateService extends IService<ApprovalTemplate> {
      * @updateTime 2020/9/18 10:41
      */
     CommonResult enable(ApprovalTemplateAddDTO approvalTemplateAddDTO);
+
+    /**
+     * 删除模板
+     *
+     * @param templateId
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/25 14:51
+     */
+    CommonResult delete(String templateId);
 }

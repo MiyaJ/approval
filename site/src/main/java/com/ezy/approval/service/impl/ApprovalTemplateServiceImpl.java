@@ -22,6 +22,7 @@ import com.ezy.approval.utils.OkHttpClientUtil;
 import com.ezy.common.constants.CommonConstan;
 import com.ezy.common.enums.ApprovalControlEnum;
 import com.ezy.common.model.CommonResult;
+import com.ezy.common.model.ResultCode;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -305,21 +306,6 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         page.setSize(templateQueryDTO.getPageSize() == null ? 10L : templateQueryDTO.getPageSize());
 
         page = templateMapper.listPage(page, templateQueryDTO);
-
-//        QueryWrapper<ApprovalTemplate> templateQueryWrapper = new QueryWrapper<>();
-//        templateQueryWrapper.eq("is_deleted", false);
-//        templateQueryWrapper.eq(isEnable != null, "is_enable", isEnable);
-//        templateQueryWrapper.eq(StrUtil.isNotEmpty(templateId), "template_id", templateId);
-//        templateQueryWrapper.like(StrUtil.isNotEmpty(templateName), "template_name", templateName);
-//        page = this.page(page, templateQueryWrapper);
-//
-//        List<ApprovalTemplate> records = page.getRecords();
-//
-////        List<ApprovalTemplate> templateList = this.list(templateQueryWrapper);
-//
-//        convertToListVO(list, records);
-//
-//        IPage<TemplateListVO>
         return page;
     }
 
@@ -344,6 +330,31 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         ApprovalTemplate approvalTemplate = byTemplateId.setIsEnable(isEnable);
         this.updateById(approvalTemplate);
         return CommonResult.success("操作成功!");
+    }
+
+    /**
+     * 删除模板
+     *
+     * @param templateId
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/25 14:51
+     */
+    @Override
+    @Transactional
+    public CommonResult delete(String templateId) {
+
+
+        QueryWrapper<ApprovalTemplateSystem> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("template_id", templateId);
+        List<ApprovalTemplateSystem> list = templateSystemService.list(queryWrapper);
+        if (CollectionUtil.isNotEmpty(list)) {
+            return CommonResult.failed("模板有绑定的系统, 请解绑后再删除");
+        }
+
+        ApprovalTemplate template = this.getByTemplateId(templateId);
+        this.removeById(template.getId());
+        return CommonResult.success(ResultCode.SUCCESS);
     }
 
     /*********************************** 私有方法 *************************************/
@@ -375,8 +386,10 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
      * @updateTime 2020/7/29 11:01
      * @return
      */
-    private List<TemplateControl> buildTemplateRequestParams(JSONObject templateContent) {
-        List<TemplateControl> controlList = Lists.newArrayList();
+    private List<TemplateRequestParam> buildTemplateRequestParams(String templateId, JSONObject templateContent) {
+        List<ApprovalTemplateControl> controlList = Lists.newArrayList();
+        List<TemplateRequestParam> requestParams = Lists.newArrayList();
+
         // 所有控件
         JSONArray controls = templateContent.getJSONArray("controls");
         if (controls != null && controls.size() > 0) {
@@ -388,55 +401,92 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 String id = property.getString("id");
                 String control = property.getString("control");
                 Integer require = property.getInteger("require");
-                JSONArray title = property.getJSONArray("title");
-                JSONArray placeholder = property.getJSONArray("placeholder");
+                Integer unPrint = property.getInteger("un_print");
+                List<TextProperty> titleList = JSONArray.parseArray(property.getString("title"), TextProperty.class);
+                List<TextProperty> placeholderList = JSONArray.parseArray(property.getString("placeholder"), TextProperty.class);
+                String title = getTextZhCN(titleList);
+                String placeholder = getTextZhCN(placeholderList);
+                String type = StrUtil.EMPTY;
+
+                if (control.equalsIgnoreCase(ApprovalControlEnum.DATE.getControl())
+                || control.equalsIgnoreCase(ApprovalControlEnum.DATE_RANGE.getControl())) {
+                    // 日期/时间
+                    type = config.getJSONObject("date").getString("type");
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.DATE_RANGE.getControl())) {
+                    // 时长
+                    type = config.getJSONObject("date_range").getString("type");
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.SELECTOR.getControl())) {
+                    // 选择
+                    type = config.getJSONObject("selector").getString("type");
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.CONTACT.getControl())) {
+                    // 成员/部门
+                    type = config.getJSONObject("contact").getString("type");
+                    String mode = config.getJSONObject("contact").getString("mode");
+                    if ("user".equalsIgnoreCase(mode)) {
+                        // 成员
+
+                    } else if ("department".equalsIgnoreCase(mode)) {
+                        // 部门
+
+                    }
+                } else if (control.equalsIgnoreCase(ApprovalControlEnum.LOCATION.getControl())) {
+                    // 位置
+                    type = config.getJSONObject("location").getString("type");
+                }
+
+                // build 模板请求参数
+                TemplateRequestParam requestParam = TemplateRequestParam.builder()
+                        .control(control)
+                        .id(id)
+                        .placeholder(placeholder)
+                        .require(require)
+                        .title(title)
+                        .unPrint(unPrint)
+                        .type(type)
+                        .build();
+                requestParams.add(requestParam);
+
+                // build 模板内容控件
+                ApprovalTemplateControl templateControl = new ApprovalTemplateControl();
+                templateControl.setTemplateId(templateId);
+                templateControl.setControl(control);
+                templateControl.setControlId(id);
+                templateControl.setTitle(title);
+                templateControl.setPlaceholder(placeholder);
+                templateControl.setRequired(require);
+                templateControl.setUnPrint(unPrint);
+                templateControl.setConfig(config != null ? config.toString() : null);
+                templateControl.setType(type);
+                controlList.add(templateControl);
+            }
+
+            // 模板内容控件入库
+            templateControlService.saveBatch(controlList);
+        }
+
+        return requestParams;
+    }
+
+    private JSONObject buildApplyData(String templateId, Map<String, Object> applyParam) {
+        List<ApprovalTemplateControl> templateControls = getTemplateControls(templateId);
+        if (CollectionUtil.isNotEmpty(templateControls)) {
+            Map<String, List<ApprovalTemplateControl>> controlMap = templateControls.stream()
+                    .collect(Collectors.groupingBy(e -> e.getControlId()));
+
+            for (Map.Entry<String, List<ApprovalTemplateControl>> entry : controlMap.entrySet()) {
+                String controlId = entry.getKey();
+                ApprovalTemplateControl templateControl = entry.getValue().get(0);
+
+                if (applyParam.get(controlId) != null) {
+                    String control = templateControl.getControl();
+                    String type = templateControl.getType();
+                    String config = templateControl.getConfig();
+                }
             }
         }
 
-
-
-
-//            for (Object controlObject : controls) {
-//                JSONObject controlJson = (JSONObject) controlObject;
-//                JSONObject property = controlJson.getJSONObject("property");
-//                JSONObject config = controlJson.getJSONObject("config");
-//
-//                TemplateControl templateControl = new TemplateControl();
-//                TemplateControlProperty controlProperty = new TemplateControlProperty();
-//                // 控件信息
-//                if (property != null) {
-//                    String control = property.getString("control");
-//                    String id = property.getString("id");
-//                    JSONObject titleJson = property.getJSONArray("title").getJSONObject(0);
-//                    String title = titleJson.getString("text");
-//                    JSONObject placeholderJson = property.getJSONArray("placeholder").getJSONObject(0);
-//                    String placeholder = placeholderJson.getString("text");
-//                    Integer require = property.getInteger("require");
-//                    Integer unPrint = property.getInteger("un_print");
-//
-//                    controlProperty = TemplateControlProperty.builder()
-//                            .control(control)
-//                            .id(id)
-//                            .title(title)
-//                            .placeholder(placeholder)
-//                            .require(require)
-//                            .unPrint(unPrint)
-//                            .build();
-//
-//                    templateControl.setProperty(controlProperty);
-//                }
-//
-//                // 模板控件配置, 包含了部分控件类型的附加类型、属性. 目前有配置信息的控件类型有：
-//                // Date-日期/日期+时间；Selector-单选/多选；Contact-成员/部门；Table-明细；Attendance-假勤组件（请假、外出、出差、加班）
-//                if (config != null) {
-//                    templateControl.setConfig(config);
-//                }
-//                controlList.add(templateControl);
-//            }
-//        }
         return null;
     }
-
     /**
      * 构建审批内容参数
      * @description
@@ -452,8 +502,6 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         JSONArray controls = templateContent.getJSONArray("controls");
         if (controls != null && controls.size() > 0) {
             for (Object controlObject : controls) {
-                ApprovalTemplateControl templateControl = new ApprovalTemplateControl();
-                templateControl.setTemplateId(templateId);
 
                 JSONObject controlJson = (JSONObject) controlObject;
                 JSONObject property = controlJson.getJSONObject("property");
@@ -476,6 +524,8 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                         .require(require)
                         .build();
 
+                ApprovalTemplateControl templateControl = new ApprovalTemplateControl();
+                templateControl.setTemplateId(templateId);
                 templateControl.setControl(control);
                 templateControl.setControlId(id);
                 templateControl.setTitle(getTextZhCN(title));
