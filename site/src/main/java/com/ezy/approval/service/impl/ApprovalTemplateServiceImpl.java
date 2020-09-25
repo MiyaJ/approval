@@ -12,6 +12,7 @@ import com.ezy.approval.entity.ApprovalTemplateControl;
 import com.ezy.approval.entity.ApprovalTemplateSystem;
 import com.ezy.approval.mapper.ApprovalTemplateMapper;
 import com.ezy.approval.model.apply.ApplyDataContent;
+import com.ezy.approval.model.apply.ApplyDataItem;
 import com.ezy.approval.model.template.*;
 import com.ezy.approval.service.IApprovalService;
 import com.ezy.approval.service.IApprovalTemplateControlService;
@@ -468,7 +469,8 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         return requestParams;
     }
 
-    private JSONObject buildApplyData(String templateId, Map<String, Object> applyParam) {
+    private List<ApplyDataItem> buildApplyData(String templateId, Map<String, Object> applyParam) {
+        List<ApplyDataItem> contents = Lists.newArrayList();
         List<ApprovalTemplateControl> templateControls = getTemplateControls(templateId);
         if (CollectionUtil.isNotEmpty(templateControls)) {
             Map<String, List<ApprovalTemplateControl>> controlMap = templateControls.stream()
@@ -479,14 +481,75 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 ApprovalTemplateControl templateControl = entry.getValue().get(0);
 
                 if (applyParam.get(controlId) != null) {
+                    Object paramValue = applyParam.get(controlId);
+
+
                     String control = templateControl.getControl();
                     String type = templateControl.getType();
-                    String config = templateControl.getConfig();
+                    JSONObject config = JSONObject.parseObject(templateControl.getConfig());
+
+
+                    JSONObject value = new JSONObject();
+                    if (type.equalsIgnoreCase(ApprovalControlEnum.TEXT.getControl())
+                    || type.equalsIgnoreCase(ApprovalControlEnum.TEXTAREA.getControl())) {
+                        // 文本/多行文本控件
+                        value.put("text", paramValue.toString());
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.NUMBER.getControl())) {
+                        // 数字控件
+                        value.put("new_number", paramValue.toString());
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.MONEY.getControl())) {
+                        // 金钱控件
+                        value.put("new_money", paramValue.toString());
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.DATE.getControl())) {
+                        // 日期/日期+时间控件
+                        JSONObject date = config.getJSONObject("date");
+                        date.put("s_timestamp", paramValue.toString());
+                        date.put("type", type);
+                        value.put("date", date);
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.SELECTOR.getControl())) {
+                        // 选择控件
+                        JSONObject selector = new JSONObject();
+                        selector.put("type", type);
+                        selector.put("options", JSONObject.parseArray(paramValue.toString()));
+                        value.put("selector", selector);
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.CONTACT.getControl())) {
+                        // 成员/部门控件
+                        String mode = config.getJSONObject("contact").getString("mode");
+                        if ("user".equalsIgnoreCase(mode)) {
+                            // 成员
+
+                        } else if ("department".equalsIgnoreCase(mode)) {
+                            // 部门
+
+                        }
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.LOCATION.getControl())) {
+                        // 位置
+                        JSONObject location = JSONObject.parseObject(paramValue.toString());
+//                        location.put("latitude", "");
+//                        location.put("longitude", "");
+//                        location.put("title", "");
+//                        location.put("address", "");
+//                        location.put("time", "");
+
+                        value.put("location", location);
+
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.FILE.getControl())) {
+
+                        JSONArray files = JSONObject.parseArray(paramValue.toString());
+                        value.put("files", files);
+                    }
+
+                    ApplyDataItem item = new ApplyDataItem();
+                    item.setControl(control);
+                    item.setId(controlId);
+                    item.setValue(value);
+
+                    contents.add(item);
                 }
             }
         }
 
-        return null;
+        return contents;
     }
     /**
      * 构建审批内容参数
