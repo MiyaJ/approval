@@ -208,37 +208,39 @@ public class ApprovalHandler {
                 // 处理审批节点详情
                 Long spRecordId = approvalSpRecord.getId();
                 List<ApprovalSpRecordDetail> recordDetails = Lists.newArrayList();
-                for (Details detail : details) {
-                    Applyer approver = detail.getApprover();
-                    String userId = approver.getUserId();
+                if (CollectionUtil.isNotEmpty(details)) {
+                    for (Details detail : details) {
+                        Applyer approver = detail.getApprover();
+                        String userId = approver.getUserId();
 
-                    QueryWrapper<ApprovalSpRecordDetail> detailQueryWrapper = new QueryWrapper<>();
-                    detailQueryWrapper.eq("sp_record_id", spRecordId);
-                    detailQueryWrapper.eq("approver_user_id", userId);
-                    ApprovalSpRecordDetail recordDetail = approvalSpRecordDetailService.getOne(detailQueryWrapper);
-                    if (recordDetail == null) {
-                        recordDetail = new ApprovalSpRecordDetail();
-                        recordDetail.setSpRecordId(spRecordId);
-                        recordDetail.setApproverUserId(userId);
+                        QueryWrapper<ApprovalSpRecordDetail> detailQueryWrapper = new QueryWrapper<>();
+                        detailQueryWrapper.eq("sp_record_id", spRecordId);
+                        detailQueryWrapper.eq("approver_user_id", userId);
+                        ApprovalSpRecordDetail recordDetail = approvalSpRecordDetailService.getOne(detailQueryWrapper);
+                        if (recordDetail == null) {
+                            recordDetail = new ApprovalSpRecordDetail();
+                            recordDetail.setSpRecordId(spRecordId);
+                            recordDetail.setApproverUserId(userId);
+                        }
+                        // TODO: 2020/9/2 调用usercenter 通过企业微信userid 查询员工信息: empId, empName
+                        EmpInfo empInfo = commonService.getEmpByUserId(userId);
+
+                        String speech = detail.getSpeech();
+                        Integer detailSpStatus = detail.getSpStatus();
+                        Long spTime = detail.getSpTime();
+
+                        recordDetail.setApproverEmpId(empInfo.getEmpId());
+                        recordDetail.setApproverEmpName(empInfo.getEmpName());
+                        recordDetail.setSpeech(speech);
+                        recordDetail.setSpStatus(detailSpStatus);
+                        recordDetail.setSpTime(spTime);
+
+                        recordDetails.add(recordDetail);
                     }
-                    // TODO: 2020/9/2 调用usercenter 通过企业微信userid 查询员工信息: empId, empName
-                    EmpInfo empInfo = commonService.getEmpByUserId(userId);
+                    approvalSpRecordDetailService.saveOrUpdateBatch(recordDetails);
 
-                    String speech = detail.getSpeech();
-                    Integer detailSpStatus = detail.getSpStatus();
-                    Long spTime = detail.getSpTime();
-
-                    recordDetail.setApproverEmpId(empInfo.getEmpId());
-                    recordDetail.setApproverEmpName(empInfo.getEmpName());
-                    recordDetail.setSpeech(speech);
-                    recordDetail.setSpStatus(detailSpStatus);
-                    recordDetail.setSpTime(spTime);
-
-                    recordDetails.add(recordDetail);
+                    step++;
                 }
-                approvalSpRecordDetailService.saveOrUpdateBatch(recordDetails);
-
-                step++;
 
             }
         }

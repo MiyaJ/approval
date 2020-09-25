@@ -98,6 +98,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
 
         // 模板内容
         JSONObject templateContent = detail.getJSONObject("template_content");
+        log.info("templateContent--->{}", templateContent.toString());
 //        List<TemplateControl> templateControls = buildTemplateRequestParams(templateContent);
 //        String requestParam = JSONObject.toJSONString(templateControls);
 
@@ -300,7 +301,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
     public IPage<TemplateListVO> list(TemplateQueryDTO templateQueryDTO) {
 
         IPage<TemplateListVO> page = new Page<>();
-        page.setPages(templateQueryDTO.getPageNum() == null ? 1L : templateQueryDTO.getPageNum());
+        page.setCurrent(templateQueryDTO.getPageNum() == null ? 1L : templateQueryDTO.getPageNum());
         page.setSize(templateQueryDTO.getPageSize() == null ? 10L : templateQueryDTO.getPageSize());
 
         page = templateMapper.listPage(page, templateQueryDTO);
@@ -384,7 +385,11 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 JSONObject property = controlJson.getJSONObject("property");
                 JSONObject config = controlJson.getJSONObject("config");
 
+                String id = property.getString("id");
+                String control = property.getString("control");
+                Integer require = property.getInteger("require");
                 JSONArray title = property.getJSONArray("title");
+                JSONArray placeholder = property.getJSONArray("placeholder");
             }
         }
 

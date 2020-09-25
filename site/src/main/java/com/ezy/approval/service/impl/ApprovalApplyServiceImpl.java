@@ -204,7 +204,8 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
     @Override
     public IPage<ApprovalListVO> list(ApprovalQueryDTO approvalQueryDTO) {
         IPage<ApprovalListVO> page = new Page<>();
-        page.setPages(approvalQueryDTO.getPageNum() == null ? 1L : approvalQueryDTO.getPageNum());
+//        page.setPages(approvalQueryDTO.getPageNum() == null ? 1L : approvalQueryDTO.getPageNum());
+        page.setCurrent(approvalQueryDTO.getPageNum() == null ? 1L : approvalQueryDTO.getPageNum());
         page.setSize(approvalQueryDTO.getPageSize() == null ? 10L : approvalQueryDTO.getPageSize());
         page = approvalApplyMapper.list(page, approvalQueryDTO);
         log.info("data --->{}", JSONObject.toJSONString(page));
