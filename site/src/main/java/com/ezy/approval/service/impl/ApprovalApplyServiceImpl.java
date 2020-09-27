@@ -3,25 +3,28 @@ package com.ezy.approval.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ezy.approval.entity.*;
-import com.ezy.approval.handler.ApprovalHandler;
 import com.ezy.approval.handler.NoticeHandler;
 import com.ezy.approval.mapper.ApprovalApplyMapper;
 import com.ezy.approval.model.apply.*;
 import com.ezy.approval.model.sys.EmpInfo;
+import com.ezy.approval.model.template.TextProperty;
 import com.ezy.approval.service.*;
 import com.ezy.approval.utils.DateUtil;
 import com.ezy.approval.utils.OkHttpClientUtil;
 import com.ezy.common.constants.RedisConstans;
 import com.ezy.common.enums.ApprovalCallbackStatusEnum;
+import com.ezy.common.enums.ApprovalControlEnum;
 import com.ezy.common.enums.ApprovalStatusEnum;
 import com.ezy.common.model.CommonResult;
 import com.ezy.common.model.ResultCode;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -118,7 +122,16 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         apply.setEmpName(empInfo.getEmpName());
         apply.setWxUserId(empInfo.getQwUserId());
         // TODO: 2020/7/29 转换审批数据
-        apply.setApplyData(JSONObject.toJSONString(approvalApplyDTO.getApplyData()));
+//        apply.setApplyData(JSONObject.toJSONString(approvalApplyDTO.getApplyData()));
+        JSONObject applyData = approvalApplyDTO.getApplyData();
+        List<ApplyDataItem> applyDataItems = buildApplyData(templateId, applyData);
+        JSONObject buildApplyData = new JSONObject();
+        buildApplyData.put("contents", applyDataItems);
+        log.info("applyData--->{}", buildApplyData.toJSONString());
+        approvalApplyDTO.setApplyData(buildApplyData);
+
+        apply.setRequestParam(JSONObject.toJSONString(applyData));
+        apply.setApplyData(JSONObject.toJSONString(buildApplyData));
         apply.setApplyTime(DateUtil.localDateTimeToSecond(LocalDateTime.now()));
         apply.setCreateTime(LocalDateTime.now());
         this.save(apply);
@@ -182,6 +195,9 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         detailVO.setSpRecords(spRecords);
         detailVO.setNotifyers(spNotifyerVOS);
         detailVO.setSpComments(spComments);
+
+        List<Map<String, String>> info = buildApprovalInfo(spNo);
+        detailVO.setInfo(info);
 
         return CommonResult.success(detailVO);
     }
@@ -382,5 +398,295 @@ public class ApprovalApplyServiceImpl extends ServiceImpl<ApprovalApplyMapper, A
         queryWrapper.orderByAsc("comment_time");
         List<ApprovalSpComment> list = spCommentService.list(queryWrapper);
         return list;
+    }
+
+    /**
+     * 侯建审批数据
+     *
+     * @param templateId 模板id
+     * @param applyParam 申请审批数据
+     * @return
+     * @author Caixiaowei
+     * @updateTime 2020/9/27 9:55
+     */
+    private List<ApplyDataItem> buildApplyData(String templateId, JSONObject applyParam) {
+        List<ApplyDataItem> contents = Lists.newArrayList();
+        List<ApprovalTemplateControl> templateControls = templateService.getTemplateControls(templateId);
+        if (CollectionUtil.isNotEmpty(templateControls)) {
+            for (ApprovalTemplateControl templateControl : templateControls) {
+                String controlId = templateControl.getControlId();
+
+                if (applyParam.get(controlId) != null) {
+                    Object paramValue = applyParam.get(controlId);
+
+                    String control = templateControl.getControl();
+                    String type = templateControl.getType();
+                    JSONObject config = JSONObject.parseObject(templateControl.getConfig());
+
+
+                    JSONObject value = new JSONObject();
+                    if (control.equalsIgnoreCase(ApprovalControlEnum.TEXT.getControl())
+                            || control.equalsIgnoreCase(ApprovalControlEnum.TEXTAREA.getControl())) {
+                        // 文本/多行文本控件
+                        value.put("text", paramValue.toString());
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.NUMBER.getControl())) {
+                        // 数字控件
+                        value.put("new_number", paramValue.toString());
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.MONEY.getControl())) {
+                        // 金钱控件
+                        value.put("new_money", paramValue.toString());
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.DATE.getControl())) {
+                        // 日期/日期+时间控件
+                        JSONObject date = config.getJSONObject("date");
+                        date.put("s_timestamp", paramValue.toString());
+                        date.put("type", type);
+                        value.put("date", date);
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.SELECTOR.getControl())) {
+                        // 选择控件
+                        JSONObject selector = new JSONObject();
+                        selector.put("type", type);
+                        String optionsKeys = paramValue.toString();
+                        JSONArray options = new JSONArray();
+                        if (StrUtil.isNotEmpty(optionsKeys)) {
+                            for (String key : optionsKeys.split(StrUtil.COMMA)) {
+                                if (StrUtil.isNotEmpty(key)) {
+                                    JSONObject option = new JSONObject();
+                                    option.put("key", key);
+
+                                    options.add(option);
+                                }
+                            }
+                        }
+                        selector.put("options", options);
+                        value.put("selector", selector);
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.CONTACT.getControl())) {
+                        // 成员/部门控件
+                        String mode = config.getJSONObject("contact").getString("mode");
+                        String str = paramValue.toString();
+                        if ("user".equalsIgnoreCase(mode)) {
+                            // 成员
+                            if (StrUtil.isNotEmpty(str)) {
+                                JSONArray members = new JSONArray();
+                                for (String s : str.split(StrUtil.COMMA)) {
+                                    if (StrUtil.isNotEmpty(s)) {
+                                        JSONObject member = new JSONObject();
+                                        member.put("userid", s);
+                                        // TODO: 2020/9/27 根据企微userid查询企微用户名
+                                        member.put("name", "蔡晓威");
+
+                                        members.add(member);
+                                    }
+                                }
+                                value.put("members", members);
+                            }
+                        } else if ("department".equalsIgnoreCase(mode)) {
+                            // 部门
+                            if (StrUtil.isNotEmpty(str)) {
+                                JSONArray departments = new JSONArray();
+                                for (String s : str.split(StrUtil.COMMA)) {
+                                    if (StrUtil.isNotEmpty(s)) {
+                                        JSONObject department = new JSONObject();
+                                        department.put("openapi_id", s);
+                                        // TODO: 2020/9/27 根据企微部门id查询企微部门名称
+                                        department.put("name", "总裁办");
+
+                                        departments.add(department);
+                                    }
+                                }
+                                value.put("departments", departments);
+                            }
+                        }
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.LOCATION.getControl())) {
+                        // 位置
+                        JSONObject location = JSONObject.parseObject(paramValue.toString());
+//                        location.put("latitude", "");
+//                        location.put("longitude", "");
+//                        location.put("title", "");
+//                        location.put("address", "");
+//                        location.put("time", "");
+
+                        value.put("location", location);
+
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.FILE.getControl())) {
+                        String filesStr = paramValue.toString();
+                        if (StrUtil.isNotEmpty(filesStr)) {
+                            JSONArray files = new JSONArray();
+                            for (String fileId : filesStr.split(StrUtil.COMMA)) {
+                                if (StrUtil.isNotEmpty(fileId)) {
+                                    JSONObject file = new JSONObject();
+                                    file.put("file_id", fileId);
+
+                                    files.add(file);
+                                }
+                            }
+                            value.put("files", files);
+                        }
+                    }
+
+                    ApplyDataItem item = new ApplyDataItem();
+                    item.setControl(control);
+                    item.setId(controlId);
+                    item.setValue(value);
+
+                    contents.add(item);
+                }
+            }
+        }
+
+        return contents;
+    }
+
+    private List<Map<String, String>> buildApprovalInfo(String spNo) {
+        List<Map<String, String>> result = Lists.newArrayList();
+
+        ApprovalApply approvalApply = this.getApprovalApply(spNo);
+        String templateId = approvalApply.getTemplateId();
+//        String applyData = approvalApply.getApplyData();
+        String requestParam = approvalApply.getRequestParam();
+
+        List<ApprovalTemplateControl> templateControls = templateService.getTemplateControls(templateId);
+        if (CollectionUtil.isNotEmpty(templateControls)) {
+            Map<String, String> paramMap = Maps.newHashMap();
+            if (StrUtil.isNotEmpty(requestParam)) {
+                paramMap = (Map<String, String>) JSONObject.parse(requestParam);
+            }
+
+//            Map<String, List<ApplyDataItem>> applyMap = Maps.newHashMap();
+//            if (CollectionUtil.isNotEmpty(applyDataItems)) {
+//                applyMap = applyDataItems.stream().collect(Collectors.groupingBy(e -> e.getId()));
+//            }
+
+            for (ApprovalTemplateControl templateControl : templateControls) {
+                String controlId = templateControl.getControlId();
+                String control = templateControl.getControl();
+                String title = templateControl.getTitle();
+                String configStr = templateControl.getConfig();
+                JSONObject config = new JSONObject();
+                if (StrUtil.isNotEmpty(configStr)) {
+                    config = JSONObject.parseObject(configStr);
+                }
+
+                String data = StrUtil.EMPTY;
+                if (CollectionUtil.isNotEmpty(paramMap) && paramMap.get(controlId) != null) {
+                    // 提交的控件的值
+                    String value = paramMap.get(controlId);
+
+                    if (control.equalsIgnoreCase(ApprovalControlEnum.TEXT.getControl())
+                            || control.equalsIgnoreCase(ApprovalControlEnum.TEXTAREA.getControl())) {
+                        // 文本/多行文本控件
+                        data = value;
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.NUMBER.getControl())) {
+                        // 数字控件
+                        data = value;
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.MONEY.getControl())) {
+                        // 金钱控件
+                        data = value;
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.DATE.getControl())) {
+                        // 日期/日期+时间控件
+                        JSONObject date = config.getJSONObject("date");
+                        String type = date.getString("type");
+                        LocalDateTime localDateTime = DateUtil.millisecondsToLocalDateTime(Long.valueOf(value));
+                        if ("day".equalsIgnoreCase(type)) {
+                            data = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                        } else {
+                            data = localDateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                        }
+                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.SELECTOR.getControl())) {
+                        // 选择控件
+                        JSONObject selector = config.getJSONObject("selector");
+                        JSONArray options = selector.getJSONArray("options");
+                        if (StrUtil.isNotEmpty(value)) {
+                            String[] split = value.split(StrUtil.COMMA);
+                            for (String key : split) {
+                                for (Object var : options) {
+                                    JSONObject option = (JSONObject) var;
+                                    String tmpKey = option.getString("key");
+                                    if (key.equalsIgnoreCase(tmpKey)) {
+                                        List<TextProperty> optionValues = JSONArray.parseArray(option.getString("value"), TextProperty.class);
+                                        String text = templateService.getTextZhCN(optionValues);
+                                        if (StrUtil.isNotEmpty(data)) {
+                                            data = StrUtil.join(StrUtil.COMMA, data, text);
+                                        } else {
+                                            data = text;
+                                        }
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+//                    else if (control.equalsIgnoreCase(ApprovalControlEnum.CONTACT.getControl())) {
+//                        // 成员/部门控件
+//                        String mode = config.getJSONObject("contact").getString("mode");
+//                        String str = paramValue.toString();
+//                        if ("user".equalsIgnoreCase(mode)) {
+//                            // 成员
+//                            if (StrUtil.isNotEmpty(str)) {
+//                                JSONArray members = new JSONArray();
+//                                for (String s : str.split(StrUtil.COMMA)) {
+//                                    if (StrUtil.isNotEmpty(s)) {
+//                                        JSONObject member = new JSONObject();
+//                                        member.put("userid", s);
+//                                        // TODO: 2020/9/27 根据企微userid查询企微用户名
+//                                        member.put("name", "蔡晓威");
+//
+//                                        members.add(member);
+//                                    }
+//                                }
+//                                value.put("members", members);
+//                            }
+//                        } else if ("department".equalsIgnoreCase(mode)) {
+//                            // 部门
+//                            if (StrUtil.isNotEmpty(str)) {
+//                                JSONArray departments = new JSONArray();
+//                                for (String s : str.split(StrUtil.COMMA)) {
+//                                    if (StrUtil.isNotEmpty(s)) {
+//                                        JSONObject department = new JSONObject();
+//                                        department.put("openapi_id", s);
+//                                        // TODO: 2020/9/27 根据企微部门id查询企微部门名称
+//                                        department.put("name", "总裁办");
+//
+//                                        departments.add(department);
+//                                    }
+//                                }
+//                                value.put("departments", departments);
+//                            }
+//                        }
+//                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.LOCATION.getControl())) {
+//                        // 位置
+//                        JSONObject location = JSONObject.parseObject(paramValue.toString());
+////                        location.put("latitude", "");
+////                        location.put("longitude", "");
+////                        location.put("title", "");
+////                        location.put("address", "");
+////                        location.put("time", "");
+//
+//                        value.put("location", location);
+//
+//                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.FILE.getControl())) {
+//                        String filesStr = paramValue.toString();
+//                        if (StrUtil.isNotEmpty(filesStr)) {
+//                            JSONArray files = new JSONArray();
+//                            for (String fileId : filesStr.split(StrUtil.COMMA)) {
+//                                if (StrUtil.isNotEmpty(fileId)) {
+//                                    JSONObject file = new JSONObject();
+//                                    file.put("file_id", fileId);
+//
+//                                    files.add(file);
+//                                }
+//                            }
+//                            value.put("files", files);
+//                        }
+//                    }
+                }
+
+                Map<String, String> map = Maps.newHashMap();
+                map.put("title", title);
+                map.put("value", data);
+
+                result.add(map);
+            }
+        }
+        return result;
     }
 }

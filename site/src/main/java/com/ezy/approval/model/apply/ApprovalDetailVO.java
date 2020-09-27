@@ -5,8 +5,8 @@ import com.ezy.approval.entity.ApprovalSpRecord;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Caixiaowei
@@ -97,4 +97,6 @@ public class ApprovalDetailVO implements Serializable {
      * 审批备注
      */
     private List<ApprovalSpComment> spComments;
+
+    private List<Map<String, String>> info;
 }

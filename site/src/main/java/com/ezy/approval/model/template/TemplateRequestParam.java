@@ -1,5 +1,6 @@
 package com.ezy.approval.model.template;
 
+import com.alibaba.fastjson.JSONArray;
 import lombok.Builder;
 import lombok.Data;
 import lombok.experimental.Tolerate;
@@ -55,5 +56,10 @@ public class TemplateRequestParam implements Serializable {
      * 控件标题
      */
     private String placeholder;
+
+    /**
+     * selector 选项
+     */
+    private JSONArray options;
 
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Caixiaowei
@@ -61,6 +62,8 @@ public class ApprovalApplyDTO implements Serializable {
      * 审批申请数据
      */
     private JSONObject applyData;
+
+    private Map<String, Object> applyDataMap;
 
 
     /**

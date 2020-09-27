@@ -89,6 +89,11 @@ public class ApprovalApply implements Serializable {
     private String wxPartyId;
 
     /**
+     * 提交请求参数
+     */
+    private String requestParam;
+
+    /**
      * 审批数据
      */
     private String applyData;

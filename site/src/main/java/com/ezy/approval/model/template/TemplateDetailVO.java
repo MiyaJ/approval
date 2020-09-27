@@ -41,7 +41,8 @@ public class TemplateDetailVO implements Serializable {
     /**
      * json结构, 模板入参, 调用方需要传入的参数及其说明
      */
-    private List<ApplyDataContent> requestParam;
+//    private List<ApplyDataContent> requestParam;
+    private List<TemplateRequestParam> requestParam;
 
     /**
      * json结构

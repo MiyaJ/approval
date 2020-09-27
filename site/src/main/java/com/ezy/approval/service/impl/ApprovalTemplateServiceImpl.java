@@ -110,8 +110,10 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
             templateControlService.removeByIds(controlIds);
         }
 
-        List<ApplyDataContent> applyDataContents = buildTemplateRequestParams2(templateId, templateContent);
-        String requestParam = JSONObject.toJSONString(applyDataContents);
+        List<TemplateRequestParam> requestParams = buildTemplateRequestParams(templateId, templateContent);
+        String requestParam = JSONObject.toJSONString(requestParams);
+//        List<ApplyDataContent> applyDataContents = buildTemplateRequestParams2(templateId, templateContent);
+//        String requestParam = JSONObject.toJSONString(applyDataContents);
 
 
         template.setTemplateId(templateId);
@@ -182,9 +184,10 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 .isEnable(template.getIsEnable())
                 .build();
         String requestParam = template.getRequestParam();
-        List<ApplyDataContent> templateControls = JSONObject.parseArray(requestParam, ApplyDataContent.class);
+//        List<ApplyDataContent> templateControls = JSONObject.parseArray(requestParam, ApplyDataContent.class);
+//        detailVO.setRequestParam(templateControls);
+        List<TemplateRequestParam> templateControls = JSONObject.parseArray(requestParam, TemplateRequestParam.class);
         detailVO.setRequestParam(templateControls);
-
         return CommonResult.success(detailVO);
     }
 
@@ -359,6 +362,44 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         return CommonResult.success(ResultCode.SUCCESS);
     }
 
+    /**
+     * 查询模板控件
+     *
+     * @param templateId 模板id
+     * @return List<ApprovalTemplateControl>
+     * @author Caixiaowei
+     * @updateTime 2020/9/24 16:22
+     */
+    @Override
+    public List<ApprovalTemplateControl> getTemplateControls(String templateId) {
+        QueryWrapper<ApprovalTemplateControl> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("template_id", templateId);
+        return templateControlService.list(queryWrapper);
+    }
+
+    /**
+     * 获取模板中的中文文本
+     *
+     * @param textPropertyList
+     * @return String
+     * @author Caixiaowei
+     * @updateTime 2020/9/22 14:31
+     */
+    @Override
+    public String getTextZhCN(List<TextProperty> textPropertyList) {
+        String text = StrUtil.EMPTY;
+        if (CollectionUtil.isNotEmpty(textPropertyList)) {
+            text = textPropertyList.get(0).getText();
+            for (TextProperty textProperty : textPropertyList) {
+                String lang = textProperty.getLang();
+                if (lang.equalsIgnoreCase(CommonConstan.ZH_CN)) {
+                    text = textProperty.getText();
+                }
+            }
+        }
+        return text;
+    }
+
     /*********************************** 私有方法 *************************************/
 
     private void convertToListVO(List<TemplateListVO> list, List<ApprovalTemplate> approvalTemplates) {
@@ -409,9 +450,9 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 String title = getTextZhCN(titleList);
                 String placeholder = getTextZhCN(placeholderList);
                 String type = StrUtil.EMPTY;
+                JSONArray options = new JSONArray();
 
-                if (control.equalsIgnoreCase(ApprovalControlEnum.DATE.getControl())
-                || control.equalsIgnoreCase(ApprovalControlEnum.DATE_RANGE.getControl())) {
+                if (control.equalsIgnoreCase(ApprovalControlEnum.DATE.getControl())) {
                     // 日期/时间
                     type = config.getJSONObject("date").getString("type");
                 } else if (control.equalsIgnoreCase(ApprovalControlEnum.DATE_RANGE.getControl())) {
@@ -420,6 +461,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                 } else if (control.equalsIgnoreCase(ApprovalControlEnum.SELECTOR.getControl())) {
                     // 选择
                     type = config.getJSONObject("selector").getString("type");
+                    options = config.getJSONObject("selector").getJSONArray("options");
                 } else if (control.equalsIgnoreCase(ApprovalControlEnum.CONTACT.getControl())) {
                     // 成员/部门
                     type = config.getJSONObject("contact").getString("type");
@@ -445,6 +487,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
                         .title(title)
                         .unPrint(unPrint)
                         .type(type)
+                        .options(options)
                         .build();
                 requestParams.add(requestParam);
 
@@ -469,88 +512,7 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         return requestParams;
     }
 
-    private List<ApplyDataItem> buildApplyData(String templateId, Map<String, Object> applyParam) {
-        List<ApplyDataItem> contents = Lists.newArrayList();
-        List<ApprovalTemplateControl> templateControls = getTemplateControls(templateId);
-        if (CollectionUtil.isNotEmpty(templateControls)) {
-            Map<String, List<ApprovalTemplateControl>> controlMap = templateControls.stream()
-                    .collect(Collectors.groupingBy(e -> e.getControlId()));
 
-            for (Map.Entry<String, List<ApprovalTemplateControl>> entry : controlMap.entrySet()) {
-                String controlId = entry.getKey();
-                ApprovalTemplateControl templateControl = entry.getValue().get(0);
-
-                if (applyParam.get(controlId) != null) {
-                    Object paramValue = applyParam.get(controlId);
-
-
-                    String control = templateControl.getControl();
-                    String type = templateControl.getType();
-                    JSONObject config = JSONObject.parseObject(templateControl.getConfig());
-
-
-                    JSONObject value = new JSONObject();
-                    if (type.equalsIgnoreCase(ApprovalControlEnum.TEXT.getControl())
-                    || type.equalsIgnoreCase(ApprovalControlEnum.TEXTAREA.getControl())) {
-                        // 文本/多行文本控件
-                        value.put("text", paramValue.toString());
-                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.NUMBER.getControl())) {
-                        // 数字控件
-                        value.put("new_number", paramValue.toString());
-                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.MONEY.getControl())) {
-                        // 金钱控件
-                        value.put("new_money", paramValue.toString());
-                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.DATE.getControl())) {
-                        // 日期/日期+时间控件
-                        JSONObject date = config.getJSONObject("date");
-                        date.put("s_timestamp", paramValue.toString());
-                        date.put("type", type);
-                        value.put("date", date);
-                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.SELECTOR.getControl())) {
-                        // 选择控件
-                        JSONObject selector = new JSONObject();
-                        selector.put("type", type);
-                        selector.put("options", JSONObject.parseArray(paramValue.toString()));
-                        value.put("selector", selector);
-                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.CONTACT.getControl())) {
-                        // 成员/部门控件
-                        String mode = config.getJSONObject("contact").getString("mode");
-                        if ("user".equalsIgnoreCase(mode)) {
-                            // 成员
-
-                        } else if ("department".equalsIgnoreCase(mode)) {
-                            // 部门
-
-                        }
-                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.LOCATION.getControl())) {
-                        // 位置
-                        JSONObject location = JSONObject.parseObject(paramValue.toString());
-//                        location.put("latitude", "");
-//                        location.put("longitude", "");
-//                        location.put("title", "");
-//                        location.put("address", "");
-//                        location.put("time", "");
-
-                        value.put("location", location);
-
-                    } else if (control.equalsIgnoreCase(ApprovalControlEnum.FILE.getControl())) {
-
-                        JSONArray files = JSONObject.parseArray(paramValue.toString());
-                        value.put("files", files);
-                    }
-
-                    ApplyDataItem item = new ApplyDataItem();
-                    item.setControl(control);
-                    item.setId(controlId);
-                    item.setValue(value);
-
-                    contents.add(item);
-                }
-            }
-        }
-
-        return contents;
-    }
     /**
      * 构建审批内容参数
      * @description
@@ -709,27 +671,6 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         return contents;
     }
 
-    /**
-     * 获取模板中的中文文本
-     *
-     * @param textPropertyList
-     * @return String
-     * @author Caixiaowei
-     * @updateTime 2020/9/22 14:31
-     */
-    private String getTextZhCN(List<TextProperty> textPropertyList) {
-        String text = StrUtil.EMPTY;
-        if (CollectionUtil.isNotEmpty(textPropertyList)) {
-            text = textPropertyList.get(0).getText();
-            for (TextProperty textProperty : textPropertyList) {
-                String lang = textProperty.getLang();
-                if (lang.equalsIgnoreCase(CommonConstan.ZH_CN)) {
-                    text = textProperty.getText();
-                }
-            }
-        }
-        return text;
-    }
 
     /**
      * check 模板
@@ -751,18 +692,5 @@ public class ApprovalTemplateServiceImpl extends ServiceImpl<ApprovalTemplateMap
         return errMsg;
     }
 
-    /**
-     * 查询模板控件
-     *
-     * @param templateId 模板id
-     * @return List<ApprovalTemplateControl>
-     * @author Caixiaowei
-     * @updateTime 2020/9/24 16:22
-     */
-    private List<ApprovalTemplateControl> getTemplateControls(String templateId) {
-        QueryWrapper<ApprovalTemplateControl> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("template_id", templateId);
-        return templateControlService.list(queryWrapper);
-    }
 
 }

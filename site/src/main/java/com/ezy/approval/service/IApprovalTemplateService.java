@@ -3,11 +3,11 @@ package com.ezy.approval.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ezy.approval.entity.ApprovalTemplate;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.ezy.approval.model.template.ApprovalTemplateAddDTO;
-import com.ezy.approval.model.template.TemplateDetailVO;
-import com.ezy.approval.model.template.TemplateListVO;
-import com.ezy.approval.model.template.TemplateQueryDTO;
+import com.ezy.approval.entity.ApprovalTemplateControl;
+import com.ezy.approval.model.template.*;
 import com.ezy.common.model.CommonResult;
+
+import java.util.List;
 
 /**
  * <p>
@@ -109,4 +109,24 @@ public interface IApprovalTemplateService extends IService<ApprovalTemplate> {
      * @updateTime 2020/9/25 14:51
      */
     CommonResult delete(String templateId);
+
+    /**
+     * 获取模板的空间集合
+     *
+     * @param templateId 模板id
+     * @return List<ApprovalTemplateControl> 控件集合
+     * @author Caixiaowei
+     * @updateTime 2020/9/27 9:54
+     */
+    List<ApprovalTemplateControl> getTemplateControls(String templateId);
+
+    /**
+     * 获取模板中的中文文本
+     *
+     * @param textPropertyList
+     * @return String
+     * @author Caixiaowei
+     * @updateTime 2020/9/22 14:31
+     */
+    String getTextZhCN(List<TextProperty> textPropertyList);
 }
