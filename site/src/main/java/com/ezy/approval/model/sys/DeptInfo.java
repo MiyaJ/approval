@@ -6,29 +6,29 @@ import java.io.Serializable;
 
 /**
  * @author Caixiaowei
- * @ClassName EmpInfo
- * @Description 员工信息
- * @createTime 2020/9/2$ 14:30$
+ * @ClassName DeptInfo
+ * @Description
+ * @createTime 2020/9/28$ 10:05$
  */
 @Data
-public class EmpInfo implements Serializable {
+public class DeptInfo implements Serializable {
 
     /**
      * 企业微信用户id
      */
-    private String qwUserId;
+    private String qwId;
     /**
      * 企业微信用户名
      */
     private String qwName;
 
     /**
-     * 员工id
+     * 部门id
      */
-    private Long empId;
+    private Long deptId;
 
     /**
-     * 员工姓名
+     * 部门名称
      */
-    private String empName;
+    private String deptName;
 }

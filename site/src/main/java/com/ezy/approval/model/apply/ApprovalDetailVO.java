@@ -2,6 +2,7 @@ package com.ezy.approval.model.apply;
 
 import com.ezy.approval.entity.ApprovalSpComment;
 import com.ezy.approval.entity.ApprovalSpRecord;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -71,6 +72,7 @@ public class ApprovalDetailVO implements Serializable {
     /**
      * 审批数据
      */
+    @JsonIgnore
     private String applyData;
 
     /**
@@ -82,6 +84,11 @@ public class ApprovalDetailVO implements Serializable {
      * 调用方回调结果
      */
     private String ack;
+
+    /**
+     * 申请数据
+     */
+    private List<Map<String, String>> info;
 
     /**
      * 审批抄送人
@@ -98,5 +105,4 @@ public class ApprovalDetailVO implements Serializable {
      */
     private List<ApprovalSpComment> spComments;
 
-    private List<Map<String, String>> info;
 }

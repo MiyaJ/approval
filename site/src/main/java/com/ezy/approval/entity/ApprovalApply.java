@@ -99,6 +99,11 @@ public class ApprovalApply implements Serializable {
     private String applyData;
 
     /**
+     * 附件url, 多个以',' 拼接
+     */
+    private String files;
+
+    /**
      * 申请失败原因
      */
     private String errorReason;
